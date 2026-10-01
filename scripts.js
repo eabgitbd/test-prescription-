@@ -651,13 +651,17 @@ function addDrugRow() {
       </div>
 
       <div>
-        <div class="drug-field-label">Timing</div>
-        <div class="timing-radios">
-          <label><input type="radio" name="dtiming-${id}" value="After meal" checked> After meal</label>
-          <label><input type="radio" name="dtiming-${id}" value="Before meal"> Before meal</label>
-          <label><input type="radio" name="dtiming-${id}" value="Empty stomach"> Empty stomach</label>
-          <label><input type="radio" name="dtiming-${id}" value="At bedtime"> At bedtime</label>
-        </div>
+        <div class="drug-field-label">Timing (খাওয়ার সময়)</div>
+        <select id="dtiming-sel-${id}" onchange="toggleCustomTiming(${id})">
+          <option value="After meal" selected>After meal (খাবার পরে)</option>
+          <option value="Before meal">Before meal (খাবার আগে)</option>
+          <option value="With meal">With meal (খাবারের সাথে)</option>
+          <option value="Empty stomach">Empty stomach (খালি পেটে)</option>
+          <option value="At bedtime">At bedtime (রাতে ঘুমানোর আগে)</option>
+          <option value="None">None (No timing text)</option>
+          <option value="Custom">✏️ Custom instruction...</option>
+        </select>
+        <input type="text" id="dtiming-custom-${id}" class="hidden" placeholder="Type custom timing instruction..." style="margin-top:4px">
       </div>
 
       <div>
@@ -668,6 +672,19 @@ function addDrugRow() {
   `;
 
   document.getElementById('drug-rows').appendChild(card);
+}
+
+function toggleCustomTiming(id) {
+  const sel = document.getElementById(`dtiming-sel-${id}`);
+  const customInp = document.getElementById(`dtiming-custom-${id}`);
+  if (sel && customInp) {
+    if (sel.value === 'Custom') {
+      customInp.classList.remove('hidden');
+      customInp.focus();
+    } else {
+      customInp.classList.add('hidden');
+    }
+  }
 }
 
 function removeDrugRow(id) {
@@ -739,14 +756,26 @@ function collectRxData() {
     const name = v(`dname-${id}`).trim();
     if (!name) return;
 
-    const timingEl = card.querySelector(`input[name="dtiming-${id}"]:checked`);
+    let timingVal = 'After meal';
+    const sel = document.getElementById(`dtiming-sel-${id}`);
+    if (sel) {
+      const selected = sel.value;
+      if (selected === 'Custom') {
+        timingVal = v(`dtiming-custom-${id}`).trim() || 'Custom';
+      } else if (selected === 'None') {
+        timingVal = '';
+      } else {
+        timingVal = selected;
+      }
+    }
+
     drugs.push({
       name,
       generic: v(`dgeneric-${id}`).trim(),
       form: v(`dform-${id}`) || 'Tab.',
       dose: v(`ddose-${id}`).trim(),
       freq: v(`dfreq-${id}`).trim(),
-      timing: timingEl ? timingEl.value : 'After meal',
+      timing: timingVal,
       duration: v(`ddur-${id}`).trim(),
       drugNotes: v(`dnotes-${id}`).trim()
     });
@@ -832,9 +861,26 @@ function editCurrentRx() {
     setV(`dfreq-${id}`, drug.freq || '');
     setV(`ddur-${id}`, drug.duration || '');
     setV(`dnotes-${id}`, drug.drugNotes || '');
-    const card = document.getElementById(`dr-${id}`);
-    const timingRadio = card ? card.querySelector(`input[name="dtiming-${id}"][value="${drug.timing||'After meal'}"]`) : null;
-    if (timingRadio) timingRadio.checked = true;
+
+    const tSel = document.getElementById(`dtiming-sel-${id}`);
+    const customInp = document.getElementById(`dtiming-custom-${id}`);
+    const stdOptions = ['After meal', 'Before meal', 'With meal', 'Empty stomach', 'At bedtime', 'None'];
+
+    if (tSel) {
+      if (!drug.timing) {
+        tSel.value = 'None';
+        if (customInp) customInp.classList.add('hidden');
+      } else if (stdOptions.includes(drug.timing)) {
+        tSel.value = drug.timing;
+        if (customInp) customInp.classList.add('hidden');
+      } else {
+        tSel.value = 'Custom';
+        if (customInp) {
+          customInp.classList.remove('hidden');
+          customInp.value = drug.timing;
+        }
+      }
+    }
   });
   if (!(rx.drugs && rx.drugs.length)) addDrugRow();
 }
@@ -959,8 +1005,8 @@ function renderRxHTML(rx) {
     `;
   }).join('');
 
-  const followupHTML = (rx.followupDays && ps.showFollowup) ? `<div class="rx-followup"><strong>Follow-up:</strong> After ${rx.followupDays} ${rx.followupUnit || 'days'}</div>` : '';
-  const adviceHTML = (rx.advice && ps.showAdvice) ? `<div class="rx-advice-section"><div class="rx-advice-label" style="color:${col}">Advice</div><div class="rx-advice-text">${rx.advice}</div></div>` : '';
+  const footerText = (p.footer || ps.footer || 'নিয়ম মাফিক ঔষধ খাবেন। ডাক্তারের পরামর্শ ব্যতীত ঔষধ পরিবর্তন নিষেধ।').trim();
+  const footerHTML = footerText ? `<div class="rx-footer-note">${footerText}</div>` : '';
 
   return `
     <div style="padding:24px 28px;">
@@ -978,7 +1024,7 @@ function renderRxHTML(rx) {
           ${followupHTML}
         </div>
       </div>
-      <div class="rx-footer-note">${p.footer || ''}</div>
+      ${footerHTML}
     </div>
   `;
 }
@@ -1303,6 +1349,7 @@ function populateProfileForm() {
   setV('prof-phone', p.phone || '');
   setV('prof-hours', p.hours || '');
   setV('prof-address', p.address || '');
+  setV('prof-footer', p.footer || 'নিয়ম মাফিক ঔষধ খাবেন। ডাক্তারের পরামর্শ ব্যতীত ঔষধ পরিবর্তন নিষেধ।');
 }
 
 function saveProfile() {
@@ -1314,6 +1361,8 @@ function saveProfile() {
   state.profile.phone = v('prof-phone');
   state.profile.hours = v('prof-hours');
   state.profile.address = v('prof-address');
+  state.profile.footer = v('prof-footer');
+  state.padSettings.footer = v('prof-footer');
   state.profile.updatedAt = Date.now();
 
   saveState();
@@ -1326,6 +1375,7 @@ function initPadDesignSection() {
   setV('pad-align', ps.align || 'center');
   setV('pad-left-width', ps.leftWidth || 165);
   setV('pad-color', ps.color || '#1a3a5c');
+  setV('pad-footer', state.profile.footer || ps.footer || 'নিয়ম মাফিক ঔষধ খাবেন। ডাক্তারের পরামর্শ ব্যতীত ঔষধ পরিবর্তন নিষেধ।');
   const showGenEl = document.getElementById('show-generic');
   if (showGenEl) showGenEl.checked = !!ps.showGenericNames;
 
@@ -1336,6 +1386,8 @@ function updatePadPreview() {
   state.padSettings.align = v('pad-align');
   state.padSettings.leftWidth = parseInt(v('pad-left-width')) || 165;
   state.padSettings.color = v('pad-color');
+  state.padSettings.footer = v('pad-footer');
+  state.profile.footer = v('pad-footer');
   const showGenEl = document.getElementById('show-generic');
   if (showGenEl) state.padSettings.showGenericNames = showGenEl.checked;
   state.padSettings.updatedAt = Date.now();

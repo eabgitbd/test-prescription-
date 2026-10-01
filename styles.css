@@ -411,6 +411,20 @@ textarea { resize: vertical; min-height: 80px; }
 .rx-drug-generic { font-size: 12px; font-weight: 500; color: #4a5568; font-style: italic; font-family: 'DM Sans', sans-serif; margin-top: 1px; }
 .rx-drug-sig { font-size: 13px; color: #2d3748; font-family: 'DM Sans', sans-serif; margin-top: 3px; font-weight: 500; }
 
+.rx-footer-note {
+  position: absolute;
+  bottom: 24px;
+  left: 28px;
+  right: 28px;
+  text-align: center;
+  font-size: 12.5px;
+  font-family: 'DM Sans', sans-serif;
+  color: #4a5568;
+  border-top: 1px dashed #cbd5e0;
+  padding-top: 8px;
+  line-height: 1.4;
+}
+
 /* Zoom Controls Bar */
 .zoom-bar {
   display: flex; gap: 8px; margin-bottom: 14px; background: rgba(15, 23, 42, 0.85);
