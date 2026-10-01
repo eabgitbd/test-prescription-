@@ -213,9 +213,25 @@ function restoreRxDraft() {
         setV(`dfreq-${id}`, drug.freq || '');
         setV(`ddur-${id}`, drug.duration || '');
         setV(`dnotes-${id}`, drug.drugNotes || '');
-        const card = document.getElementById(`dr-${id}`);
-        const timingRadio = card ? card.querySelector(`input[name="dtiming-${id}"][value="${drug.timing||'After meal'}"]`) : null;
-        if (timingRadio) timingRadio.checked = true;
+        const tSel = document.getElementById(`dtiming-sel-${id}`);
+        const customInp = document.getElementById(`dtiming-custom-${id}`);
+        const stdOptions = ['After meal', 'Before meal', 'With meal', 'Empty stomach', 'At bedtime', 'None'];
+
+        if (tSel) {
+          if (!drug.timing) {
+            tSel.value = 'None';
+            if (customInp) customInp.classList.add('hidden');
+          } else if (stdOptions.includes(drug.timing)) {
+            tSel.value = drug.timing;
+            if (customInp) customInp.classList.add('hidden');
+          } else {
+            tSel.value = 'Custom';
+            if (customInp) {
+              customInp.classList.remove('hidden');
+              customInp.value = drug.timing;
+            }
+          }
+        }
       });
     }
     toast('📝 Unsaved prescription draft restored');
@@ -1178,10 +1194,14 @@ function populateRxPatientSelect(selectedId = '') {
   if (!sel) return;
 
   let optionsHTML = '';
+  if (!selectedId) {
+    optionsHTML += '<option value="" selected>-- Select Patient --</option>';
+  }
+
   if (state.patients.length === 0) {
-    optionsHTML = '<option value="">-- No Patients Registered --</option>';
+    optionsHTML += '<option value="">-- No Patients Registered --</option>';
   } else {
-    optionsHTML = state.patients.map(p => 
+    optionsHTML += state.patients.map(p => 
       `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.name} (${p.age || 'Age N/A'}) ${p.phone ? '· ' + p.phone : ''}</option>`
     ).join('');
   }

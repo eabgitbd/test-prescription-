@@ -228,6 +228,10 @@
             <label>Chamber Hours</label>
             <input type="text" id="prof-hours" placeholder="5:00 PM - 9:00 PM">
           </div>
+          <div class="form-group">
+            <label>Doctor Phone / Hotline</label>
+            <input type="text" id="prof-phone" placeholder="+880 1700-000000">
+          </div>
           <div class="form-group full">
             <label>Prescription Footer Advice / Disclaimer Note</label>
             <input type="text" id="prof-footer" placeholder="e.g. নিয়ম মাফিক ঔষধ খাবেন। ডাক্তারের পরামর্শ ব্যতীত ঔষধ পরিবর্তন নিষেধ।">
@@ -419,8 +423,16 @@
           <select id="rx-patient-select" onchange="checkRxPatientSelect(this)"></select>
         </div>
         <div class="form-group">
-          <label>Date</label>
-          <input type="date" id="rx-date">
+          <label>Visit Date & Type</label>
+          <div class="form-row">
+            <input type="date" id="rx-date" style="flex:1">
+            <select id="rx-visit" style="width:130px">
+              <option value="New Visit">New Visit</option>
+              <option value="Follow-up">Follow-up</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Routine">Routine</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -444,6 +456,10 @@
         <div class="form-group full">
           <label>Investigation / Tests Advised</label>
           <textarea id="rx-investigation" placeholder="e.g. CBC with ESR, Chest X-Ray (P/A view)"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Private Doctor Notes / Internal Remarks (Not Printed)</label>
+          <textarea id="rx-notes" placeholder="e.g. Patient reluctant for admission. Advised re-evaluation in 3 days." style="min-height:50px"></textarea>
         </div>
       </div>
 
