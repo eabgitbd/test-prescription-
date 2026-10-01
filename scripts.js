@@ -327,8 +327,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (state.loggedIn) {
     showApp();
-    if (googleAccessToken) {
+    if (state.loginMethod === 'google') {
       syncWithGoogleCloud();
+      // Setup 40-minute silent background token refresh keep-alive
+      setInterval(() => {
+        if (state.loggedIn && state.loginMethod === 'google') {
+          refreshGoogleTokenSilently();
+        }
+      }, 40 * 60 * 1000);
     } else {
       updateDriveStatus('offline');
     }
@@ -427,6 +433,54 @@ function initGoogleAuth() {
   } catch(e) {
     console.error('Failed to initialize Google GSI Client:', e);
   }
+}
+
+let isRefreshingToken = false;
+
+function refreshGoogleTokenSilently() {
+  if (typeof google === 'undefined' || !google.accounts) return Promise.resolve(false);
+  initGoogleAuth();
+  if (!tokenClient) return Promise.resolve(false);
+  if (isRefreshingToken) return Promise.resolve(false);
+
+  isRefreshingToken = true;
+
+  return new Promise((resolve) => {
+    const originalCallback = tokenClient.callback;
+    const timeoutTimer = setTimeout(() => {
+      tokenClient.callback = originalCallback;
+      isRefreshingToken = false;
+      resolve(false);
+    }, 10000);
+
+    tokenClient.callback = (tokenResponse) => {
+      clearTimeout(timeoutTimer);
+      tokenClient.callback = originalCallback;
+      isRefreshingToken = false;
+
+      if (tokenResponse && !tokenResponse.error && tokenResponse.access_token) {
+        googleAccessToken = tokenResponse.access_token;
+        googleTokenExpiry = Date.now() + ((tokenResponse.expires_in || 3600) * 1000);
+        localStorage.setItem('google_access_token', googleAccessToken);
+        localStorage.setItem('google_token_expiry', googleTokenExpiry.toString());
+        updateDriveStatus('synced');
+        console.log('⚡ Google Cloud token silently renewed!');
+        resolve(true);
+      } else {
+        console.warn('Silent Google token refresh returned error:', tokenResponse?.error);
+        resolve(false);
+      }
+    };
+
+    try {
+      tokenClient.requestAccessToken({ prompt: '' });
+    } catch(e) {
+      clearTimeout(timeoutTimer);
+      tokenClient.callback = originalCallback;
+      isRefreshingToken = false;
+      resolve(false);
+    }
+  });
 }
 
 function startGoogleLogin() {
@@ -1403,16 +1457,21 @@ function mergeState(local, cloud) {
 }
 
 async function syncWithGoogleCloud(showToast = false) {
-  if (!googleAccessToken) {
+  if (state.loginMethod !== 'google' && !googleAccessToken) {
     updateDriveStatus('offline');
     if (showToast) toast('⚠️ Sign in with Google to enable Cloud Sync');
     return;
   }
 
-  if (googleTokenExpiry && Date.now() > googleTokenExpiry - 60000) {
-    updateDriveStatus('offline', 'Token Expired');
-    if (showToast) toast('⚠️ Google Cloud session expired. Please sign in with Google.');
-    return;
+  // Auto-refresh Google access token silently if expired or expiring within 5 minutes
+  if (!googleAccessToken || (googleTokenExpiry && Date.now() > googleTokenExpiry - 300000)) {
+    updateDriveStatus('syncing', 'Refreshing Token…');
+    const refreshed = await refreshGoogleTokenSilently();
+    if (!refreshed && !googleAccessToken) {
+      updateDriveStatus('offline', 'Drive Offline');
+      if (showToast) toast('⚠️ Cloud sync offline. Click ☁️ to re-authorize.');
+      return;
+    }
   }
 
   if (isSyncingCloud) return;
