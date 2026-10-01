@@ -391,36 +391,39 @@ textarea { resize: vertical; min-height: 80px; }
   transition: transform .2s ease;
 }
 
-.rx-header { text-align: center; margin-bottom: 0; }
-.rx-doc-name { font-size: 23px; font-weight: 700; letter-spacing: -.2px; color: #1a365d; }
-.rx-doc-quals { font-size: 13px; color: #2d3748; line-height: 1.5; font-family: 'DM Sans', sans-serif; }
-.rx-divider { border: none; border-top: 1.5px solid #1a202c; margin: 8px 0 6px; }
-.rx-patient-row { display: flex; gap: 0; font-size: 13px; font-family: 'DM Sans', sans-serif; border-bottom: 1px solid #1a202c; padding-bottom: 6px; margin-bottom: 0; }
+.rx-header { text-align: center; margin-bottom: 4px; }
+.rx-doc-name { font-size: 26px; font-weight: 800; letter-spacing: -.3px; color: #1a365d; line-height: 1.25; margin-bottom: 3px; font-family: 'DM Sans', sans-serif; }
+.rx-doc-quals { font-size: 13.5px; font-weight: 700; color: #1a202c; line-height: 1.5; font-family: 'DM Sans', sans-serif; }
+.rx-divider { border: none; border-top: 2px solid #1a202c; margin: 8px 0 6px; }
+.rx-patient-row { display: flex; gap: 0; font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600; border-bottom: 1.5px solid #1a202c; padding-bottom: 6px; margin-bottom: 0; }
 .rx-pfield { flex: 1; }
-.rx-pfield strong { margin-right: 4px; }
-.rx-body { display: flex; min-height: 720px; border-bottom: 1px solid #1a202c; box-sizing: border-box; }
-.rx-left { width: 175px; flex-shrink: 0; border-right: 1px solid #1a202c; padding: 12px 12px 12px 0; display: flex; flex-direction: column; gap: 20px; }
-.rx-section-label { font-size: 11.5px; font-weight: 700; font-family: 'DM Sans', sans-serif; letter-spacing: .8px; text-transform: uppercase; color: #1a365d; }
-.rx-section-content { font-size: 12.5px; font-family: 'DM Sans', sans-serif; color: #2d3748; line-height: 1.55; white-space: pre-wrap; margin-top: 4px; }
+.rx-pfield strong { margin-right: 4px; font-weight: 800; color: #1a202c; }
+.rx-body { display: flex; min-height: 700px; box-sizing: border-box; }
+.rx-left { width: 175px; flex-shrink: 0; border-right: 1.5px solid #1a202c; padding: 12px 12px 12px 0; display: flex; flex-direction: column; gap: 20px; }
+.rx-section-label { font-size: 12px; font-weight: 800; font-family: 'DM Sans', sans-serif; letter-spacing: .9px; text-transform: uppercase; color: #1a365d; border-bottom: 1.5px solid #cbd5e0; padding-bottom: 2px; margin-bottom: 4px; display: inline-block; }
+.rx-section-content { font-size: 12.5px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: #2d3748; line-height: 1.55; white-space: pre-wrap; margin-top: 4px; }
 .rx-right { flex: 1; padding: 12px 0 12px 18px; display: flex; flex-direction: column; }
-.rx-rx-title { font-size: 20px; font-weight: 700; color: #1a365d; margin-bottom: 12px; }
+.rx-rx-title { font-size: 24px; font-weight: 900; color: #1a365d; margin-bottom: 12px; font-family: 'DM Sans', sans-serif; }
 
 .rx-drug-item { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px dotted #cbd5e0; }
 .rx-drug-item:last-child { border-bottom: none; }
-.rx-drug-name { font-size: 14.5px; font-weight: 700; color: #1a202c; }
-.rx-drug-generic { font-size: 12px; font-weight: 500; color: #4a5568; font-style: italic; font-family: 'DM Sans', sans-serif; margin-top: 1px; }
-.rx-drug-sig { font-size: 13px; color: #2d3748; font-family: 'DM Sans', sans-serif; margin-top: 3px; font-weight: 500; }
+.rx-drug-name { font-size: 14.5px; font-weight: 800; color: #1a202c; }
+.rx-drug-generic { font-size: 12px; font-weight: 600; color: #4a5568; font-style: italic; font-family: 'DM Sans', sans-serif; margin-top: 1px; }
+.rx-drug-sig { font-size: 13px; color: #2d3748; font-family: 'DM Sans', sans-serif; margin-top: 3px; font-weight: 600; }
+
+.rx-footer-line { border: none; border-top: 2px solid #1a202c; margin: 16px 0 10px 0; }
 
 .rx-footer-note {
   position: absolute;
-  bottom: 24px;
+  bottom: 20px;
   left: 28px;
   right: 28px;
   text-align: center;
   font-size: 12.5px;
+  font-weight: 700;
   font-family: 'DM Sans', sans-serif;
-  color: #4a5568;
-  border-top: 1px dashed #cbd5e0;
+  color: #1a202c;
+  border-top: 2px solid #1a202c;
   padding-top: 8px;
   line-height: 1.4;
 }

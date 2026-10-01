@@ -1000,7 +1000,7 @@ function renderRxHTML(rx) {
       <div class="rx-doc-quals">${p.qualifications || ''}</div>
       ${p.designation ? `<div class="rx-doc-quals">${p.designation}</div>` : ''}
       ${p.hospital ? `<div class="rx-doc-quals">${p.hospital}</div>` : ''}
-      ${p.reg ? `<div class="rx-doc-quals" style="font-weight:600; margin-top:2px;">${p.reg}</div>` : ''}
+      ${p.reg ? `<div class="rx-doc-quals" style="font-weight:800; color:${col}; margin-top:3px;">${p.reg}</div>` : ''}
     </div>
   `;
 
@@ -1015,7 +1015,7 @@ function renderRxHTML(rx) {
 
   const leftSections = `
     ${rx.complaints ? `<div><div class="rx-section-label" style="color:${col}">COMPLAINTS</div><div class="rx-section-content">${rx.complaints}</div></div>` : ''}
-    ${rx.diagnosis ? `<div><div class="rx-section-label" style="color:${col}">DIAGNOSIS</div><div class="rx-section-content" style="font-weight:600">${rx.diagnosis}</div></div>` : ''}
+    ${rx.diagnosis ? `<div><div class="rx-section-label" style="color:${col}">DIAGNOSIS</div><div class="rx-section-content">${rx.diagnosis}</div></div>` : ''}
     ${(rx.history && ps.showHistory) ? `<div><div class="rx-section-label" style="color:${col}">HISTORY</div><div class="rx-section-content">${rx.history}</div></div>` : ''}
     ${(rx.findings && ps.showFindings) ? `<div><div class="rx-section-label" style="color:${col}">FINDINGS</div><div class="rx-section-content">${rx.findings}</div></div>` : ''}
     ${(rx.investigation && ps.showInvestigation) ? `<div><div class="rx-section-label" style="color:${col}">INVESTIGATION</div><div class="rx-section-content">${rx.investigation}</div></div>` : ''}
@@ -1035,10 +1035,10 @@ function renderRxHTML(rx) {
     `;
   }).join('');
 
-  const followupHTML = (rx.followupDays && ps.showFollowup) ? `<div class="rx-followup" style="margin-top:16px; font-size:13px; font-family:'DM Sans',sans-serif; font-weight:600; color:#1a365d;"><strong>Follow-up:</strong> After ${rx.followupDays} ${rx.followupUnit || 'days'}</div>` : '';
-  const adviceHTML = (rx.advice && ps.showAdvice) ? `<div class="rx-advice-section" style="margin-top:16px;"><div class="rx-advice-label" style="font-size:13px; font-weight:700; font-family:'DM Sans',sans-serif; color:${col}; text-transform:uppercase;">Advice / নির্দেশনা</div><div class="rx-advice-text" style="font-size:13px; font-family:'DM Sans',sans-serif; color:#2d3748; line-height:1.55; white-space:pre-wrap; margin-top:4px;">${rx.advice}</div></div>` : '';
+  const followupHTML = (rx.followupDays && ps.showFollowup) ? `<div class="rx-followup" style="margin-top:16px; font-size:13px; font-family:'DM Sans',sans-serif; font-weight:700; color:${col};"><strong>Follow-up:</strong> After ${rx.followupDays} ${rx.followupUnit || 'days'}</div>` : '';
+  const adviceHTML = (rx.advice && ps.showAdvice) ? `<div class="rx-advice-section" style="margin-top:16px;"><div class="rx-section-label" style="color:${col}">ADVICE / নির্দেশনা</div><div class="rx-section-content" style="font-size:13px; font-family:'DM Sans',sans-serif; color:#2d3748; line-height:1.55; white-space:pre-wrap; margin-top:4px;">${rx.advice}</div></div>` : '';
   const footerText = (p.footer || ps.footer || 'নিয়ম মাফিক ঔষধ খাবেন। ডাক্তারের পরামর্শ ব্যতীত ঔষধ পরিবর্তন নিষেধ।').trim();
-  const footerHTML = footerText ? `<div class="rx-footer-note">${footerText}</div>` : '';
+  const footerHTML = footerText ? `<div class="rx-footer-line" style="border-top-color:${col};"></div><div class="rx-footer-note" style="border-top-color:${col};">${footerText}</div>` : '';
 
   return `
     <div style="padding:24px 28px;">
