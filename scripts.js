@@ -327,7 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (state.loggedIn) {
     showApp();
-    updateDriveStatus(!!googleAccessToken);
+    if (googleAccessToken) {
+      syncWithGoogleCloud();
+    } else {
+      updateDriveStatus('offline');
+    }
   } else {
     showSection('login');
   }
@@ -492,9 +496,8 @@ async function fetchUserInfoAndLogin() {
 
   setLoginLoading(false);
   showApp();
-  updateDriveStatus(true);
   toast('✅ Signed in with Google');
-  setTimeout(() => { syncDriveSilent(); }, 1500);
+  setTimeout(() => { syncWithGoogleCloud(true); }, 500);
 }
 
 function setLoginLoading(show, text) {
@@ -697,10 +700,12 @@ function collectRxData() {
 
   const pid = v('rx-patient-select');
   const patient = state.patients.find(p => p.id === pid);
+  const now = Date.now();
 
   return {
     id: state.currentRx ? state.currentRx.id : uid(),
-    createdAt: state.currentRx ? state.currentRx.createdAt : new Date().toISOString(),
+    createdAt: state.currentRx ? (state.currentRx.createdAt || new Date().toISOString()) : new Date().toISOString(),
+    updatedAt: now,
     date: v('rx-date') || new Date().toISOString().split('T')[0],
     visitType: v('rx-visit') || 'New Visit',
     patientId: pid,
@@ -732,6 +737,7 @@ function saveRx() {
   closeModal('modal-rx');
   renderDashboard();
   renderAllRx();
+  scheduleCloudSync(true);
   toast('✅ Prescription saved');
 
   viewRx(rx.id);
@@ -1055,6 +1061,7 @@ function deletePatient(pid) {
     renderDashboard();
     renderAllRx();
     closeModal('modal-patient-history');
+    scheduleCloudSync(true);
     toast('🗑️ Patient profile deleted');
   }
 }
@@ -1069,6 +1076,8 @@ function savePatient() {
   const name = v('pname').trim();
   if (!name) { toast('⚠️ Patient name is required'); return; }
 
+  const now = Date.now();
+  const existingPatient = state.editingPatientId ? state.patients.find(p => p.id === state.editingPatientId) : null;
   const patientData = {
     id: state.editingPatientId || uid(),
     name,
@@ -1076,7 +1085,9 @@ function savePatient() {
     gender: v('pgender'),
     bloodGroup: v('pblood'),
     phone: v('pphone'),
-    allergies: v('pallergies')
+    allergies: v('pallergies'),
+    createdAt: existingPatient ? (existingPatient.createdAt || now) : now,
+    updatedAt: now
   };
 
   if (state.editingPatientId) {
@@ -1090,6 +1101,7 @@ function savePatient() {
   closeModal('modal-patient');
   renderPatients();
   renderDashboard();
+  scheduleCloudSync(true);
   toast('✅ Patient saved');
 }
 
@@ -1181,6 +1193,7 @@ function deleteRx(id) {
     saveState();
     renderAllRx();
     renderDashboard();
+    scheduleCloudSync(true);
     toast('🗑️ Prescription deleted');
   }
 }
@@ -1207,8 +1220,10 @@ function saveProfile() {
   state.profile.phone = v('prof-phone');
   state.profile.hours = v('prof-hours');
   state.profile.address = v('prof-address');
+  state.profile.updatedAt = Date.now();
 
   saveState();
+  scheduleCloudSync(true);
   toast('✅ Profile saved');
 }
 
@@ -1229,8 +1244,10 @@ function updatePadPreview() {
   state.padSettings.color = v('pad-color');
   const showGenEl = document.getElementById('show-generic');
   if (showGenEl) state.padSettings.showGenericNames = showGenEl.checked;
+  state.padSettings.updatedAt = Date.now();
 
   saveState();
+  scheduleCloudSync(false);
 }
 
 // ── OFFLINE LOCAL BACKUP EXPORT & IMPORT ──
@@ -1256,6 +1273,7 @@ function importBackupData(input) {
       if (imported && (imported.patients || imported.prescriptions)) {
         Object.assign(state, imported);
         saveState();
+        scheduleCloudSync(true);
         location.reload();
       } else {
         toast('❌ Invalid backup JSON file structure');
@@ -1267,27 +1285,194 @@ function importBackupData(input) {
   reader.readAsText(file);
 }
 
-// ── DRIVE SYNC STUBS ──
-function updateDriveStatus(connected) {
+// ── HYBRID LOCAL-FIRST & GOOGLE CLOUD REAL-TIME SYNC ENGINE ──
+let isSyncingCloud = false;
+let cloudSyncDebounceTimer = null;
+
+function updateDriveStatus(status, labelText) {
   const statusEl = document.getElementById('drive-status');
   if (!statusEl) return;
-  statusEl.innerHTML = connected
-    ? `<div class="drive-dot" style="background:var(--success)"></div><span style="color:var(--success)">Drive Synced</span>`
-    : `<div class="drive-dot" style="background:var(--warn)"></div><span style="color:var(--text-3)">Drive Offline</span>`;
+  if (status === 'synced' || status === true) {
+    statusEl.innerHTML = `<div class="drive-dot" style="background:var(--success)"></div><span style="color:var(--success)">${labelText || 'Cloud Synced'}</span>`;
+  } else if (status === 'syncing') {
+    statusEl.innerHTML = `<div class="drive-dot" style="background:var(--accent)"></div><span style="color:var(--accent)">${labelText || 'Syncing…'}</span>`;
+  } else if (status === 'error') {
+    statusEl.innerHTML = `<div class="drive-dot" style="background:var(--danger)"></div><span style="color:var(--danger)">${labelText || 'Sync Error'}</span>`;
+  } else {
+    statusEl.innerHTML = `<div class="drive-dot" style="background:var(--warn)"></div><span style="color:var(--text-3)">${labelText || 'Cloud Offline'}</span>`;
+  }
 }
 
-function syncDriveSilent() {
+function scheduleCloudSync(immediate = false) {
   if (!googleAccessToken) return;
-  updateDriveStatus(true);
-}
 
-function syncDrive() {
-  if (!googleAccessToken) {
-    toast('⚠️ Connect Google account to enable Drive Sync');
+  if (immediate) {
+    if (cloudSyncDebounceTimer) clearTimeout(cloudSyncDebounceTimer);
+    syncWithGoogleCloud();
     return;
   }
-  toast('☁️ Syncing with Google Drive…');
-  setTimeout(() => { toast('✅ Drive sync completed'); }, 1200);
+
+  if (cloudSyncDebounceTimer) clearTimeout(cloudSyncDebounceTimer);
+  cloudSyncDebounceTimer = setTimeout(() => {
+    syncWithGoogleCloud();
+  }, 1500);
+}
+
+function mergeState(local, cloud) {
+  if (!cloud) return local;
+
+  const merged = { ...local };
+
+  // Merge Doctor Profile
+  if (cloud.profile) {
+    if (!merged.profile || (cloud.profile.updatedAt || 0) > (merged.profile.updatedAt || 0)) {
+      merged.profile = { ...cloud.profile };
+    }
+  }
+
+  // Merge Pad Settings
+  if (cloud.padSettings) {
+    if (!merged.padSettings || (cloud.padSettings.updatedAt || 0) > (merged.padSettings.updatedAt || 0)) {
+      merged.padSettings = { ...cloud.padSettings };
+    }
+  }
+
+  // Merge Patient Profiles (by ID)
+  const patientMap = new Map();
+  (merged.patients || []).forEach(p => patientMap.set(p.id, p));
+  (cloud.patients || []).forEach(p => {
+    const existing = patientMap.get(p.id);
+    if (!existing || (p.updatedAt || 0) > (existing.updatedAt || 0)) {
+      patientMap.set(p.id, p);
+    }
+  });
+  merged.patients = Array.from(patientMap.values());
+
+  // Merge Prescriptions (by ID)
+  const rxMap = new Map();
+  (merged.prescriptions || []).forEach(r => rxMap.set(r.id, r));
+  (cloud.prescriptions || []).forEach(r => {
+    const existing = rxMap.get(r.id);
+    if (!existing || (r.updatedAt || 0) > (existing.updatedAt || 0)) {
+      rxMap.set(r.id, r);
+    }
+  });
+  merged.prescriptions = Array.from(rxMap.values());
+
+  return merged;
+}
+
+async function syncWithGoogleCloud(showToast = false) {
+  if (!googleAccessToken) {
+    updateDriveStatus('offline');
+    if (showToast) toast('⚠️ Sign in with Google to enable Cloud Sync');
+    return;
+  }
+
+  if (googleTokenExpiry && Date.now() > googleTokenExpiry - 60000) {
+    updateDriveStatus('offline', 'Token Expired');
+    if (showToast) toast('⚠️ Google Cloud session expired. Please sign in with Google.');
+    return;
+  }
+
+  if (isSyncingCloud) return;
+  isSyncingCloud = true;
+  updateDriveStatus('syncing');
+
+  try {
+    // 1. Search Google Drive AppData folder for prescribepro_cloud_db.json
+    const searchUrl = "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='prescribepro_cloud_db.json'&fields=files(id,name,modifiedTime)";
+    const searchRes = await fetch(searchUrl, {
+      headers: { Authorization: `Bearer ${googleAccessToken}` }
+    });
+
+    if (!searchRes.ok) {
+      throw new Error(`Drive search failed: ${searchRes.statusText}`);
+    }
+
+    const searchData = await searchRes.json();
+    const existingFile = searchData.files && searchData.files.length > 0 ? searchData.files[0] : null;
+
+    let cloudData = null;
+
+    if (existingFile) {
+      // Download current Cloud data
+      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${existingFile.id}?alt=media`;
+      const dlRes = await fetch(downloadUrl, {
+        headers: { Authorization: `Bearer ${googleAccessToken}` }
+      });
+      if (dlRes.ok) {
+        try { cloudData = await dlRes.json(); } catch(e) { console.warn('Cloud parse error:', e); }
+      }
+    }
+
+    // 2. Perform Smart State Merge
+    if (cloudData) {
+      const merged = mergeState(state, cloudData);
+      Object.assign(state, merged);
+      saveState();
+    }
+
+    // 3. Prepare payload for Cloud Upload
+    state.lastSyncedTimestamp = Date.now();
+    const payload = {
+      version: '2.0',
+      updatedAt: Date.now(),
+      user: state.user,
+      profile: state.profile,
+      padSettings: state.padSettings,
+      patients: state.patients,
+      prescriptions: state.prescriptions
+    };
+
+    const payloadStr = JSON.stringify(payload, null, 2);
+
+    if (existingFile) {
+      // Patch existing file
+      const updateUrl = `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`;
+      const upRes = await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: payloadStr
+      });
+      if (!upRes.ok) throw new Error(`Cloud update failed: ${upRes.statusText}`);
+    } else {
+      // Create new file in appDataFolder
+      const metadata = {
+        name: 'prescribepro_cloud_db.json',
+        parents: ['appDataFolder']
+      };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', new Blob([payloadStr], { type: 'application/json' }));
+
+      const createUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+      const createRes = await fetch(createUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${googleAccessToken}` },
+        body: form
+      });
+      if (!createRes.ok) throw new Error(`Cloud create failed: ${createRes.statusText}`);
+    }
+
+    // 4. Refresh UI displays
+    renderDashboard();
+    renderPatients();
+    renderAllRx();
+    populateProfileForm();
+
+    updateDriveStatus('synced');
+    if (showToast) toast('☁️ Google Cloud sync complete!');
+  } catch (err) {
+    console.error('Cloud Sync error:', err);
+    updateDriveStatus('error');
+    if (showToast) toast('❌ Cloud Sync failed: ' + err.message);
+  } finally {
+    isSyncingCloud = false;
+  }
 }
 
 // ── HELPERS ──
