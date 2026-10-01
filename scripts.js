@@ -131,19 +131,98 @@ const DRUGS = [
   { name: 'Biphasic Insulin 30/70', generic: 'Insulin (Human)', dose: '100IU/ml', form: 'Inj.', company: 'Novo Nordisk', price: '৳450.00/vial' }
 ];
 
-// ── DYNAMIC DRUG DATABASE LOADER FROM PROJECT DIRECTORY ──
+// ── FAST DRUG DATABASE CACHING (0ms INSTANT LOAD) ──
 async function loadExternalDrugDatabase() {
+  // Step 1: Load from local memory cache for instant (0ms) startup
+  const cached = localStorage.getItem('prescribepro_cached_drugs');
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        externalDrugs = parsed;
+        console.log(`⚡ Instant loaded ${externalDrugs.length} medicines from local memory cache`);
+      }
+    } catch(e) {
+      console.warn('Failed to parse local drug cache:', e);
+    }
+  }
+
+  // Step 2: Background fetch data/drugs.json to update cache
   try {
     const res = await fetch('data/drugs.json');
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         externalDrugs = data;
-        console.log(`Loaded ${externalDrugs.length} medicines from data/drugs.json`);
+        localStorage.setItem('prescribepro_cached_drugs', JSON.stringify(data));
+        console.log(`Updated local cache with ${externalDrugs.length} medicines from data/drugs.json`);
       }
     }
   } catch (e) {
-    console.warn('Could not fetch data/drugs.json, using built-in drug catalog:', e);
+    console.warn('Could not fetch data/drugs.json, using cached or built-in drug catalog:', e);
+  }
+}
+
+// ── REAL-TIME PRESCRIPTION DRAFT AUTO-SAVE & RECOVERY ──
+function saveRxDraft() {
+  const modalRx = document.getElementById('modal-rx');
+  if (!modalRx || modalRx.classList.contains('hidden')) return;
+
+  const rx = collectRxData();
+  if (rx.complaints || rx.diagnosis || rx.history || rx.findings || rx.investigation || rx.advice || (rx.drugs && rx.drugs.length > 0 && rx.drugs[0].name)) {
+    localStorage.setItem('prescribepro_rx_draft', JSON.stringify(rx));
+  }
+}
+
+function clearRxDraft() {
+  localStorage.removeItem('prescribepro_rx_draft');
+}
+
+function restoreRxDraft() {
+  const savedDraft = localStorage.getItem('prescribepro_rx_draft');
+  if (!savedDraft) return false;
+
+  try {
+    const draft = JSON.parse(savedDraft);
+    if (!draft) return false;
+
+    const sel = document.getElementById('rx-patient-select');
+    if (sel && draft.patientId) sel.value = draft.patientId;
+
+    setV('rx-date', draft.date || new Date().toISOString().split('T')[0]);
+    setV('rx-visit', draft.visitType || 'New Visit');
+    setV('rx-complaints', draft.complaints || '');
+    setV('rx-diagnosis', draft.diagnosis || '');
+    setV('rx-history', draft.history || '');
+    setV('rx-findings', draft.findings || '');
+    setV('rx-investigation', draft.investigation || '');
+    setV('rx-advice', draft.advice || '');
+    setV('rx-notes', draft.notes || '');
+    setV('rx-followup-days', draft.followupDays || '');
+    setV('rx-followup-unit', draft.followupUnit || 'days');
+
+    if (draft.drugs && draft.drugs.length > 0) {
+      document.getElementById('drug-rows').innerHTML = '';
+      draft.drugs.forEach(drug => {
+        addDrugRow();
+        const id = drugRowId;
+        setV(`dname-${id}`, drug.name || '');
+        setV(`dgeneric-${id}`, drug.generic || '');
+        setV(`dform-${id}`, drug.form || 'Tab.');
+        setV(`ddose-${id}`, drug.dose || '');
+        setV(`dfreq-${id}`, drug.freq || '');
+        setV(`ddur-${id}`, drug.duration || '');
+        setV(`dnotes-${id}`, drug.drugNotes || '');
+        const card = document.getElementById(`dr-${id}`);
+        const timingRadio = card ? card.querySelector(`input[name="dtiming-${id}"][value="${drug.timing||'After meal'}"]`) : null;
+        if (timingRadio) timingRadio.checked = true;
+      });
+    }
+    toast('📝 Unsaved prescription draft restored');
+    return true;
+  } catch(e) {
+    console.error('Error restoring draft:', e);
+    return false;
   }
 }
 
@@ -260,6 +339,12 @@ function initUI() {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', updatePadPreview);
     });
+
+  const rxModalEl = document.getElementById('modal-rx');
+  if (rxModalEl) {
+    rxModalEl.addEventListener('input', saveRxDraft);
+    rxModalEl.addEventListener('change', saveRxDraft);
+  }
 
   if (document.getElementById('drug-rows')) {
     addDrugRow();
@@ -531,6 +616,7 @@ function addDrugRow() {
 function removeDrugRow(id) {
   const el = document.getElementById(`dr-${id}`);
   if (el) el.remove();
+  saveRxDraft();
 }
 
 function getActiveDrugs() {
@@ -579,6 +665,7 @@ function selectDrug(id, name, generic, form, dose) {
 
   const ac = document.getElementById(`dac-${id}`);
   if (ac) ac.classList.add('hidden');
+  saveRxDraft();
 }
 
 document.addEventListener('click', e => {
@@ -641,6 +728,7 @@ function saveRx() {
   else state.prescriptions.unshift(rx);
 
   saveState();
+  clearRxDraft();
   closeModal('modal-rx');
   renderDashboard();
   renderAllRx();
@@ -1012,7 +1100,11 @@ function openRxModalForPatient(pid) {
   if (sel) {
     sel.innerHTML = state.patients.map(p => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${p.name} (${p.age||''})</option>`).join('');
   }
-  clearRxForm();
+
+  const restored = restoreRxDraft();
+  if (!restored) {
+    clearRxForm();
+  }
 }
 
 function clearRxForm() {
