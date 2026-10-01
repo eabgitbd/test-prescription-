@@ -264,14 +264,20 @@ function getStorageKey() {
 }
 
 function saveState() {
+  localStorage.setItem('prescribepro_session_active', state.loggedIn ? 'true' : 'false');
+  localStorage.setItem('prescribepro_session_method', state.loginMethod || 'local');
+  if (state.user && state.user.email) {
+    localStorage.setItem('prescribepro_last_email', state.user.email);
+  }
   localStorage.setItem(getStorageKey(), JSON.stringify(state));
-  localStorage.setItem('prescribepro_last_email', (state.user && state.user.email) ? state.user.email : 'local_doctor');
 }
 
 function loadState() {
+  const sessionActive = localStorage.getItem('prescribepro_session_active') === 'true';
   const lastEmail = localStorage.getItem('prescribepro_last_email') || 'local_doctor';
   const key = 'prescribepro_state_' + lastEmail;
-  const s = localStorage.getItem(key) || localStorage.getItem('prescribepro_state');
+  const s = localStorage.getItem(key) || localStorage.getItem('prescribepro_state') || localStorage.getItem('prescribepro_state_local_doctor');
+
   if (s) {
     try {
       const loaded = JSON.parse(s);
@@ -279,6 +285,11 @@ function loadState() {
     } catch(e) {
       console.error('Failed to parse local state:', e);
     }
+  }
+
+  if (sessionActive) {
+    state.loggedIn = true;
+    state.loginMethod = localStorage.getItem('prescribepro_session_method') || state.loginMethod || 'local';
   }
 
   if (state.theme) applyTheme(state.theme);
@@ -341,11 +352,13 @@ document.addEventListener('DOMContentLoaded', () => {
   loadExternalDrugDatabase();
   startAutoLockMonitor();
 
-  if (state.loggedIn) {
+  const sessionActive = localStorage.getItem('prescribepro_session_active') === 'true';
+
+  if (state.loggedIn || sessionActive) {
+    state.loggedIn = true;
     showApp();
     if (state.loginMethod === 'google') {
       syncWithGoogleCloud();
-      // Setup 40-minute silent background token refresh keep-alive
       setInterval(() => {
         if (state.loggedIn && state.loginMethod === 'google') {
           refreshGoogleTokenSilently();
@@ -425,6 +438,7 @@ function logout() {
     state.loggedIn = false;
     googleAccessToken = null;
     googleTokenExpiry = null;
+    localStorage.setItem('prescribepro_session_active', 'false');
     localStorage.removeItem('google_access_token');
     localStorage.removeItem('google_token_expiry');
     saveState();
@@ -1142,9 +1156,10 @@ function openPatientHistory(pid) {
             <div style="font-size:13px; color:var(--text); margin-top:2px">${rx.diagnosis ? '<strong>Diagnosis:</strong> ' + rx.diagnosis : ''}</div>
             <div class="text-muted">${rx.complaints ? 'Complaints: ' + rx.complaints.substring(0,60) + '...' : ''}</div>
           </div>
-          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px">
-            <span class="tag tag-blue">${rx.drugs ? rx.drugs.length : 0} drug(s)</span>
-            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); viewRx('${rx.id}')">👁️ View / Print</button>
+          <div style="display:flex; gap:6px; align-items:center" onclick="event.stopPropagation()">
+            <button class="btn btn-secondary btn-sm" onclick="viewRx('${rx.id}')" title="View Prescription">👁️ View</button>
+            <button class="btn btn-secondary btn-sm" onclick="editRxFromList('${rx.id}')" title="Edit Prescription">✏️ Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteRx('${rx.id}')" title="Delete Prescription">🗑️ Delete</button>
           </div>
         </div>
       `;
@@ -1317,7 +1332,11 @@ function renderDashboard() {
           <div style="font-weight:600; font-size:14.5px">${rx.patientName} — ${rx.visitType||'Visit'}</div>
           <div class="text-muted">${rx.complaints ? rx.complaints.substring(0,50) + '...' : ''}</div>
         </div>
-        <span class="tag tag-blue">${rx.drugs ? rx.drugs.length : 0} drug(s)</span>
+        <div style="display:flex; gap:6px; align-items:center" onclick="event.stopPropagation()">
+          <button class="btn btn-secondary btn-sm" onclick="viewRx('${rx.id}')" title="View Prescription">👁️ View</button>
+          <button class="btn btn-secondary btn-sm" onclick="editRxFromList('${rx.id}')" title="Edit Prescription">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRx('${rx.id}')" title="Delete Prescription">🗑️ Delete</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -1339,12 +1358,21 @@ function renderAllRx() {
         <div style="font-weight:700; font-size:15px">${rx.patientName}</div>
         <div class="text-muted">${rx.date} · ${rx.visitType||''}</div>
       </div>
-      <div style="display:flex; gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); viewRx('${rx.id}')">👁️ View</button>
-        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteRx('${rx.id}')">🗑️ Delete</button>
+      <div style="display:flex; gap:6px; align-items:center" onclick="event.stopPropagation()">
+        <button class="btn btn-secondary btn-sm" onclick="viewRx('${rx.id}')" title="View Prescription">👁️ View</button>
+        <button class="btn btn-secondary btn-sm" onclick="editRxFromList('${rx.id}')" title="Edit Prescription">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRx('${rx.id}')" title="Delete Prescription">🗑️ Delete</button>
       </div>
     </div>
   `).join('');
+}
+
+function editRxFromList(id) {
+  const rx = state.prescriptions.find(r => r.id === id);
+  if (!rx) return;
+  state.currentRx = rx;
+  closeModal('modal-patient-history');
+  editCurrentRx();
 }
 
 function deleteRx(id) {
