@@ -353,15 +353,44 @@ textarea { resize: vertical; min-height: 80px; }
 .modal-body { padding: 20px 28px 28px; }
 .modal-footer { padding: 0 28px 24px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 
-/* ── PRESCRIPTION PREVIEW (A4) ── */
-#rx-preview-wrap { background: #334155; padding: 24px; display: flex; justify-content: center; flex-direction: column; align-items: center; }
-#rx-a4-scaler { width: 100%; display: flex; justify-content: center; overflow-x: auto; padding: 10px 0; }
+/* ── STRICT STANDARD A4 PRESCRIPTION PREVIEW & EXPORT ── */
+#rx-preview-wrap {
+  background: #334155;
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#rx-a4-scaler {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+/* Fixed Standard A4 Paper Aspect Ratio (794px x 1123px = 1 : 1.414) */
 #rx-a4 {
-  width: 794px; min-height: 1123px; background: white;
-  font-family: 'Crimson Pro', serif; position: relative;
-  box-shadow: var(--shadow-lg); color: #1a202c; box-sizing: border-box; overflow: hidden;
+  width: 794px !important;
+  min-width: 794px !important;
+  max-width: 794px !important;
+  min-height: 1123px !important;
+  background: #ffffff !important;
+  color: #1a202c !important;
+  font-family: 'Crimson Pro', serif;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+  overflow: hidden;
+  flex-shrink: 0;
   transition: transform .2s ease;
 }
+
 .rx-header { text-align: center; margin-bottom: 0; }
 .rx-doc-name { font-size: 23px; font-weight: 700; letter-spacing: -.2px; color: #1a365d; }
 .rx-doc-quals { font-size: 13px; color: #2d3748; line-height: 1.5; font-family: 'DM Sans', sans-serif; }
@@ -384,7 +413,7 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* Zoom Controls Bar */
 .zoom-bar {
-  display: flex; gap: 8px; margin-bottom: 14px; background: rgba(15, 23, 42, 0.8);
+  display: flex; gap: 8px; margin-bottom: 14px; background: rgba(15, 23, 42, 0.85);
   padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(8px);
 }
 .zoom-btn {
@@ -414,7 +443,6 @@ textarea { resize: vertical; min-height: 80px; }
 }
 #toast.show { opacity: 1; transform: translateY(0); }
 
-/* Hide mobile nav by default on desktop */
 .mobile-bottom-nav { display: none; }
 .rx-section-jumps { display: none; }
 

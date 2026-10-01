@@ -587,7 +587,7 @@ function collectRxData() {
     drugs.push({
       name,
       generic: v(`dgeneric-${id}`).trim(),
-      form: v(`dform-${id}`),
+      form: v(`dform-${id}`) || 'Tab.',
       dose: v(`ddose-${id}`).trim(),
       freq: v(`dfreq-${id}`).trim(),
       timing: timingEl ? timingEl.value : 'After meal',
@@ -679,57 +679,74 @@ function editCurrentRx() {
   if (!(rx.drugs && rx.drugs.length)) addDrugRow();
 }
 
-// ── DOWNLOAD HD IMAGE OF PRESCRIPTION ──
+// ── DOWNLOAD CRISP HD A4 IMAGE OF PRESCRIPTION ──
 function downloadRxImage() {
   if (!state.currentRx) return;
   const el = document.getElementById('rx-a4');
   if (!el) return;
 
-  toast('📷 Rendering HD Prescription Image...');
+  toast('📷 Generating Crisp HD A4 Image...');
+
   if (typeof html2canvas === 'undefined') {
     toast('❌ html2canvas library not loaded');
     return;
   }
 
+  // Preserve screen zoom styling
+  const savedTransform = el.style.transform;
+  const savedTransformOrigin = el.style.transformOrigin;
+
+  // Temporarily reset inline CSS transform for 100% true A4 capture
+  el.style.transform = 'none';
+  el.style.transformOrigin = 'initial';
+
   html2canvas(el, {
-    scale: 3,
+    scale: 3, // High DPI 300 DPI capture
     useCORS: true,
     backgroundColor: '#ffffff',
-    logging: false
+    logging: false,
+    width: 794,
+    height: Math.max(1123, el.offsetHeight)
   }).then(canvas => {
+    // Restore inline CSS transform for screen view
+    el.style.transform = savedTransform;
+    el.style.transformOrigin = savedTransformOrigin;
+
     const pName = (state.currentRx.patientName || 'Patient').replace(/[^a-zA-Z0-9]/g, '_');
     const date = state.currentRx.date || 'rx';
     const link = document.createElement('a');
-    link.download = `Prescription_${pName}_${date}.png`;
+    link.download = `Prescription_A4_${pName}_${date}.png`;
     link.href = canvas.toDataURL('image/png', 1.0);
     document.body.appendChild(link);
     link.click();
     link.remove();
-    toast('✅ HD Image Downloaded (300 DPI PNG)');
+    toast('✅ HD A4 PNG Image Downloaded');
   }).catch(err => {
+    el.style.transform = savedTransform;
+    el.style.transformOrigin = savedTransformOrigin;
     console.error('Image render error:', err);
     toast('❌ Error rendering HD image');
   });
 }
 
-// ── A4 PREVIEW ZOOM SCALER FOR MOBILE ──
+// ── A4 PREVIEW ZOOM SCALER FOR SMARTPHONES ──
 function zoomRxPreview(delta) {
   const el = document.getElementById('rx-a4');
   if (!el) return;
 
   if (delta === 0) {
-    // Fit Screen Mode
-    const screenW = window.innerWidth - 32;
+    // Auto Fit Screen Mode
+    const screenW = window.innerWidth - 36;
     currentRxZoom = screenW < 794 ? (screenW / 794) : 1.0;
   } else {
-    currentRxZoom = Math.min(Math.max(0.3, currentRxZoom + delta), 2.0);
+    currentRxZoom = Math.min(Math.max(0.35, currentRxZoom + delta), 2.0);
   }
 
   el.style.transform = `scale(${currentRxZoom})`;
   el.style.transformOrigin = 'top center';
 }
 
-// ── RENDER PRESCRIPTION (A4 / PRINT) ──
+// ── RENDER PRESCRIPTION (STRICT A4 FORMAT) ──
 function renderRxHTML(rx) {
   const p = state.profile;
   const ps = state.padSettings;
@@ -767,11 +784,13 @@ function renderRxHTML(rx) {
     ${(rx.investigation && ps.showInvestigation) ? `<div><div class="rx-section-label" style="color:${col}">INVESTIGATION</div><div class="rx-section-content">${rx.investigation}</div></div>` : ''}
   `;
 
+  // Always prepend automatically the selected Medicine Type / Form (e.g. Tab., Cap., Syr., Inj., Supp.)
   const drugsHTML = (rx.drugs || []).map((d, i) => {
-    const formDisplay = d.form ? `${d.form} ` : '';
+    let rawForm = (d.form || 'Tab.').trim();
+    if (!rawForm.endsWith('.')) rawForm += '.';
     return `
       <div class="rx-drug-item">
-        <div class="rx-drug-name">${i+1}. ${formDisplay}${d.name} ${d.dose ? '— ' + d.dose : ''}</div>
+        <div class="rx-drug-name">${i+1}. ${rawForm} ${d.name} ${d.dose ? '— ' + d.dose : ''}</div>
         ${(showGeneric && d.generic) ? `<div class="rx-drug-generic">(${d.generic})</div>` : ''}
         <div class="rx-drug-sig">${[d.freq, d.timing, d.duration].filter(Boolean).join(' · ')}</div>
         ${d.drugNotes ? `<div style="font-size:11.5px; color:#555; font-family:'DM Sans',sans-serif; margin-top:2px; font-style:italic;">📝 ${d.drugNotes}</div>` : ''}
