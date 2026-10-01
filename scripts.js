@@ -1035,6 +1035,8 @@ function renderRxHTML(rx) {
     `;
   }).join('');
 
+  const followupHTML = (rx.followupDays && ps.showFollowup) ? `<div class="rx-followup" style="margin-top:16px; font-size:13px; font-family:'DM Sans',sans-serif; font-weight:600; color:#1a365d;"><strong>Follow-up:</strong> After ${rx.followupDays} ${rx.followupUnit || 'days'}</div>` : '';
+  const adviceHTML = (rx.advice && ps.showAdvice) ? `<div class="rx-advice-section" style="margin-top:16px;"><div class="rx-advice-label" style="font-size:13px; font-weight:700; font-family:'DM Sans',sans-serif; color:${col}; text-transform:uppercase;">Advice / নির্দেশনা</div><div class="rx-advice-text" style="font-size:13px; font-family:'DM Sans',sans-serif; color:#2d3748; line-height:1.55; white-space:pre-wrap; margin-top:4px;">${rx.advice}</div></div>` : '';
   const footerText = (p.footer || ps.footer || 'নিয়ম মাফিক ঔষধ খাবেন। ডাক্তারের পরামর্শ ব্যতীত ঔষধ পরিবর্তন নিষেধ।').trim();
   const footerHTML = footerText ? `<div class="rx-footer-note">${footerText}</div>` : '';
 
