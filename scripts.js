@@ -5,6 +5,7 @@ var tokenClient = null;
 var autoLockTimer = null;
 var lastActivityTime = Date.now();
 var currentRxZoom = 1.0;
+var externalDrugs = [];
 
 // ── STATE ──
 let state = {
@@ -68,7 +69,7 @@ const MEDICINE_FORMS = [
   { label: 'Lotion', value: 'Lotion', full: 'Lotion' }
 ];
 
-// ── DRUG DATABASE ──
+// ── BUILT-IN FALLBACK DRUG DATABASE ──
 const DRUGS = [
   { name: 'Napa', generic: 'Paracetamol', dose: '500mg', form: 'Tab.', company: 'Beximco Pharma', price: '৳1.50/tab' },
   { name: 'Napa Extra', generic: 'Paracetamol + Caffeine', dose: '500mg+65mg', form: 'Tab.', company: 'Beximco Pharma', price: '৳2.00/tab' },
@@ -129,6 +130,22 @@ const DRUGS = [
   { name: 'Salbulin Inhaler', generic: 'Salbutamol', dose: '100mcg/puff', form: 'Inh.', company: 'Square Pharma', price: '৳180.00/inhaler' },
   { name: 'Biphasic Insulin 30/70', generic: 'Insulin (Human)', dose: '100IU/ml', form: 'Inj.', company: 'Novo Nordisk', price: '৳450.00/vial' }
 ];
+
+// ── DYNAMIC DRUG DATABASE LOADER FROM PROJECT DIRECTORY ──
+async function loadExternalDrugDatabase() {
+  try {
+    const res = await fetch('data/drugs.json');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        externalDrugs = data;
+        console.log(`Loaded ${externalDrugs.length} medicines from data/drugs.json`);
+      }
+    }
+  } catch (e) {
+    console.warn('Could not fetch data/drugs.json, using built-in drug catalog:', e);
+  }
+}
 
 // ── THEME MANAGEMENT ──
 function applyTheme(t) {
@@ -226,6 +243,7 @@ function unlockDesk() {
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
   initUI();
+  loadExternalDrugDatabase();
   startAutoLockMonitor();
 
   if (state.loggedIn) {
@@ -516,17 +534,11 @@ function removeDrugRow(id) {
 }
 
 function getActiveDrugs() {
+  const baseList = externalDrugs.length > 0 ? externalDrugs : DRUGS;
   if (state.customDrugs && state.customDrugs.length > 0) {
-    const enriched = state.customDrugs.map(cd => {
-      if (!cd.company) {
-        const builtin = DRUGS.find(d => d.name.toLowerCase() === cd.name.toLowerCase());
-        if (builtin && builtin.company) return { ...cd, company: builtin.company };
-      }
-      return cd;
-    });
-    return [...enriched, ...DRUGS.filter(d => !state.customDrugs.some(c => (c.name || '').toLowerCase() === (d.name || '').toLowerCase()))];
+    return [...state.customDrugs, ...baseList.filter(d => !state.customDrugs.some(c => (c.name || '').toLowerCase() === (d.name || '').toLowerCase()))];
   }
-  return DRUGS;
+  return baseList;
 }
 
 function drugSearch(input, id) {
@@ -537,7 +549,7 @@ function drugSearch(input, id) {
   const matches = getActiveDrugs().filter(d =>
     (d.name || '').toLowerCase().includes(q) ||
     (d.generic || '').toLowerCase().includes(q)
-  ).slice(0, 10);
+  ).slice(0, 12);
 
   if (matches.length === 0) { ac.classList.add('hidden'); return; }
 
@@ -692,11 +704,9 @@ function downloadRxImage() {
     return;
   }
 
-  // Preserve screen zoom styling
   const savedTransform = el.style.transform;
   const savedTransformOrigin = el.style.transformOrigin;
 
-  // Temporarily reset inline CSS transform for 100% true A4 capture
   el.style.transform = 'none';
   el.style.transformOrigin = 'initial';
 
@@ -708,7 +718,6 @@ function downloadRxImage() {
     width: 794,
     height: Math.max(1123, el.offsetHeight)
   }).then(canvas => {
-    // Restore inline CSS transform for screen view
     el.style.transform = savedTransform;
     el.style.transformOrigin = savedTransformOrigin;
 
@@ -735,7 +744,6 @@ function zoomRxPreview(delta) {
   if (!el) return;
 
   if (delta === 0) {
-    // Auto Fit Screen Mode
     const screenW = window.innerWidth - 36;
     currentRxZoom = screenW < 794 ? (screenW / 794) : 1.0;
   } else {
@@ -784,7 +792,7 @@ function renderRxHTML(rx) {
     ${(rx.investigation && ps.showInvestigation) ? `<div><div class="rx-section-label" style="color:${col}">INVESTIGATION</div><div class="rx-section-content">${rx.investigation}</div></div>` : ''}
   `;
 
-  // Always prepend automatically the selected Medicine Type / Form (e.g. Tab., Cap., Syr., Inj., Supp.)
+  // Prepend automatically the selected Medicine Type / Form (e.g. Tab., Cap., Syr., Inj., Supp.)
   const drugsHTML = (rx.drugs || []).map((d, i) => {
     let rawForm = (d.form || 'Tab.').trim();
     if (!rawForm.endsWith('.')) rawForm += '.';
