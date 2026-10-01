@@ -132,7 +132,10 @@
           <div class="section-title">Doctor Dashboard</div>
           <div class="section-sub">Prescription overview & recent patient activity</div>
         </div>
-        <button class="btn btn-primary" onclick="openPatientModal()">+ New Patient</button>
+        <div style="display:flex; gap:10px">
+          <button class="btn btn-secondary" onclick="openPatientModal()">+ New Patient</button>
+          <button class="btn btn-primary" onclick="openRxModalForPatient('')">+ New Prescription</button>
+        </div>
       </div>
 
       <div class="stats-row">
@@ -165,7 +168,7 @@
       <div class="section-header">
         <div>
           <div class="section-title">Patient Directory</div>
-          <div class="section-sub">Manage registered patient profiles</div>
+          <div class="section-sub">Manage registered patient profiles and view prescription history</div>
         </div>
         <button class="btn btn-primary" onclick="openPatientModal()">+ New Patient</button>
       </div>
@@ -178,7 +181,7 @@
       <div class="section-header">
         <div>
           <div class="section-title">Prescription Archive</div>
-          <div class="section-sub">View and reprint past prescriptions</div>
+          <div class="section-sub">View, edit, and print past prescriptions</div>
         </div>
       </div>
 
@@ -279,6 +282,26 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ── MODAL: PATIENT HISTORY & TIMELINE ── -->
+<div id="modal-patient-history" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="phist-patient-name">Patient Profile</div>
+        <div style="font-size:13px; color:var(--text-3); margin-top:2px" id="phist-patient-meta">Prescription Timeline</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-patient-history')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+        <div style="font-weight:700; font-size:15px; color:var(--rx-blue)">📜 Past Prescriptions (Serial - Newest First)</div>
+        <button class="btn btn-primary btn-sm" id="phist-add-rx-btn">+ New Prescription</button>
+      </div>
+      <div id="phist-rx-timeline"></div>
+    </div>
   </div>
 </div>
 
@@ -417,7 +440,7 @@
 <div id="modal-rx-preview" class="modal-overlay hidden">
   <div class="modal modal-lg">
     <div class="modal-header">
-      <div class="modal-title">Prescription Preview & Print</div>
+      <div class="modal-title">Prescription Preview & Export</div>
       <button class="modal-close" onclick="closeModal('modal-rx-preview')">✕</button>
     </div>
     <div class="modal-body" style="padding:0">
@@ -427,6 +450,8 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-rx-preview')">Close</button>
+      <button class="btn btn-secondary" onclick="editCurrentRx()">✏️ Edit Prescription</button>
+      <button class="btn btn-secondary" onclick="downloadRxImage()">🖼️ Download HD Image</button>
       <button class="btn btn-primary" onclick="printPrescription()">🖨️ Print Prescription</button>
     </div>
   </div>

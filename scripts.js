@@ -66,7 +66,7 @@ const MEDICINE_FORMS = [
   { label: 'Lotion', value: 'Lotion', full: 'Lotion' }
 ];
 
-// ── DRUG DATABASE (Common Bangladesh Drugs with Brand & Generic) ──
+// ── DRUG DATABASE (Common Bangladesh Drugs) ──
 const DRUGS = [
   { name: 'Napa', generic: 'Paracetamol', dose: '500mg', form: 'Tab.', company: 'Beximco Pharma', price: '৳1.50/tab' },
   { name: 'Napa Extra', generic: 'Paracetamol + Caffeine', dose: '500mg+65mg', form: 'Tab.', company: 'Beximco Pharma', price: '৳2.00/tab' },
@@ -218,14 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initUI() {
-  // Pad settings change listeners
   ['pad-align','pad-left-width','pad-color','show-history','show-findings','show-investigation','show-advice','show-followup','show-generic','use-clinical-prefix']
     .forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', updatePadPreview);
     });
 
-  // Default initial drug row
   if (document.getElementById('drug-rows')) {
     addDrugRow();
   }
@@ -367,15 +365,13 @@ async function fetchUserInfoAndLogin() {
 
   state.loggedIn = true;
   state.loginMethod = 'google';
-  loadState(); // load user-specific storage if present
+  loadState();
   saveState();
 
   setLoginLoading(false);
   showApp();
   updateDriveStatus(true);
   toast('✅ Signed in with Google');
-
-  // Silent drive sync
   setTimeout(() => { syncDriveSilent(); }, 1500);
 }
 
@@ -394,7 +390,6 @@ function showApp() {
   document.getElementById('topnav').classList.remove('hidden');
   document.getElementById('main-layout').classList.remove('hidden');
 
-  // Set user avatar
   const avatar = document.getElementById('user-avatar');
   if (avatar) avatar.textContent = state.user.initials || 'DR';
 
@@ -431,7 +426,6 @@ function addDrugRow() {
   card.innerHTML = `
     <button class="del-btn drug-card-del" onclick="removeDrugRow(${id})" title="Remove Medication">✕</button>
 
-    <!-- Row 1: Medicine Form, Brand Name, Generic Name, Dose -->
     <div class="drug-grid-main">
       <div>
         <div class="drug-field-label">Type / Form</div>
@@ -457,7 +451,6 @@ function addDrugRow() {
       </div>
     </div>
 
-    <!-- Row 2: Frequency, Duration, Timing, Route, Notes -->
     <div class="drug-grid-secondary">
       <div>
         <div class="drug-field-label">Frequency (সময়)</div>
@@ -613,8 +606,82 @@ function saveRx() {
   renderAllRx();
   toast('✅ Prescription saved');
 
-  // Trigger preview
   viewRx(rx.id);
+}
+
+// ── EDIT EXISTING PRESCRIPTION ──
+function editCurrentRx() {
+  if (!state.currentRx) return;
+  closeModal('modal-rx-preview');
+  const rx = state.currentRx;
+
+  openModal('modal-rx');
+  const sel = document.getElementById('rx-patient-select');
+  if (sel) {
+    sel.innerHTML = state.patients.map(p => `<option value="${p.id}" ${p.id === rx.patientId ? 'selected' : ''}>${p.name} (${p.age||''})</option>`).join('');
+  }
+
+  setV('rx-date', rx.date || new Date().toISOString().split('T')[0]);
+  setV('rx-visit', rx.visitType || 'New Visit');
+  setV('rx-complaints', rx.complaints || '');
+  setV('rx-diagnosis', rx.diagnosis || '');
+  setV('rx-history', rx.history || '');
+  setV('rx-findings', rx.findings || '');
+  setV('rx-investigation', rx.investigation || '');
+  setV('rx-advice', rx.advice || '');
+  setV('rx-notes', rx.notes || '');
+  setV('rx-followup-days', rx.followupDays || '');
+  setV('rx-followup-unit', rx.followupUnit || 'days');
+
+  document.getElementById('drug-rows').innerHTML = '';
+  (rx.drugs || []).forEach(drug => {
+    addDrugRow();
+    const id = drugRowId;
+    setV(`dname-${id}`, drug.name || '');
+    setV(`dgeneric-${id}`, drug.generic || '');
+    setV(`dform-${id}`, drug.form || 'Tab.');
+    setV(`ddose-${id}`, drug.dose || '');
+    setV(`dfreq-${id}`, drug.freq || '');
+    setV(`ddur-${id}`, drug.duration || '');
+    setV(`dnotes-${id}`, drug.drugNotes || '');
+    const card = document.getElementById(`dr-${id}`);
+    const timingRadio = card ? card.querySelector(`input[name="dtiming-${id}"][value="${drug.timing||'After meal'}"]`) : null;
+    if (timingRadio) timingRadio.checked = true;
+  });
+  if (!(rx.drugs && rx.drugs.length)) addDrugRow();
+}
+
+// ── DOWNLOAD HD IMAGE OF PRESCRIPTION ──
+function downloadRxImage() {
+  if (!state.currentRx) return;
+  const el = document.getElementById('rx-a4');
+  if (!el) return;
+
+  toast('📷 Rendering HD Prescription Image...');
+  if (typeof html2canvas === 'undefined') {
+    toast('❌ html2canvas library not loaded');
+    return;
+  }
+
+  html2canvas(el, {
+    scale: 3,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false
+  }).then(canvas => {
+    const pName = (state.currentRx.patientName || 'Patient').replace(/[^a-zA-Z0-9]/g, '_');
+    const date = state.currentRx.date || 'rx';
+    const link = document.createElement('a');
+    link.download = `Prescription_${pName}_${date}.png`;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast('✅ HD Image Downloaded (300 DPI PNG)');
+  }).catch(err => {
+    console.error('Image render error:', err);
+    toast('❌ Error rendering HD image');
+  });
 }
 
 // ── RENDER PRESCRIPTION (A4 / PRINT) ──
@@ -719,7 +786,7 @@ function printPrescription() {
   w.onload = () => { w.print(); };
 }
 
-// ── PATIENT MANAGEMENT ──
+// ── PATIENT MANAGEMENT & SERIAL HISTORY TIMELINE ──
 function renderPatients() {
   const grid = document.getElementById('patient-grid');
   if (!grid) return;
@@ -727,21 +794,110 @@ function renderPatients() {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="ico">👥</div><h3>No patients added yet</h3><p>Click "+ New Patient" to create your first patient profile.</p></div>';
     return;
   }
+
   grid.innerHTML = state.patients.map(p => `
-    <div class="patient-card" onclick="openRxModalForPatient('${p.id}')">
-      <div class="patient-actions">
-        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); editPatient('${p.id}')">✏️ Edit</button>
+    <div class="patient-card" onclick="openPatientHistory('${p.id}')">
+      <div class="patient-card-top">
+        <div class="patient-avatar ${p.gender === 'Female' ? 'female' : ''}">${p.name[0]}</div>
+        <!-- Always Visible Action Buttons -->
+        <div class="patient-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-secondary btn-sm" onclick="openRxModalForPatient('${p.id}')" title="New Prescription">➕ New Rx</button>
+          <button class="btn btn-secondary btn-sm" onclick="editPatient('${p.id}')" title="Edit Profile">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePatient('${p.id}')" title="Delete Profile">🗑️ Delete</button>
+        </div>
       </div>
-      <div class="patient-avatar ${p.gender === 'Female' ? 'female' : ''}">${p.name[0]}</div>
       <div class="patient-name">${p.name}</div>
       <div class="patient-meta">
         <span class="patient-badge ${p.gender === 'Female' ? 'badge-f' : 'badge-m'}">${p.gender || '—'}</span>
         <span>Age: ${p.age || '—'}</span>
         ${p.bloodGroup ? `<span>🩸 ${p.bloodGroup}</span>` : ''}
       </div>
-      ${p.phone ? `<div style="font-size:12px; color:var(--text-3); margin-top:6px">📞 ${p.phone}</div>` : ''}
+      ${p.phone ? `<div style="font-size:12px; color:var(--text-3); margin-top:4px">📞 ${p.phone}</div>` : ''}
     </div>
   `).join('');
+}
+
+function openPatientHistory(pid) {
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+
+  document.getElementById('phist-patient-name').textContent = p.name;
+  document.getElementById('phist-patient-meta').textContent = `${p.gender || ''} · Age: ${p.age || '—'} ${p.phone ? '· 📞 ' + p.phone : ''}`;
+  
+  const addBtn = document.getElementById('phist-add-rx-btn');
+  if (addBtn) {
+    addBtn.onclick = () => {
+      closeModal('modal-patient-history');
+      openRxModalForPatient(p.id);
+    };
+  }
+
+  // Get patient prescriptions sorted serially (newest on top -> older below)
+  const patientRxList = state.prescriptions
+    .filter(r => r.patientId === pid)
+    .sort((a,b) => new Date(b.createdAt||b.date) - new Date(a.createdAt||a.date));
+
+  const timelineContainer = document.getElementById('phist-rx-timeline');
+  if (!timelineContainer) return;
+
+  if (patientRxList.length === 0) {
+    timelineContainer.innerHTML = '<div class="empty-state"><div class="ico">📋</div><h3>No prescriptions written yet</h3><p>Click "+ New Prescription" above to write the first prescription for this patient.</p></div>';
+  } else {
+    timelineContainer.innerHTML = patientRxList.map(rx => {
+      const d = new Date(rx.date + 'T00:00');
+      return `
+        <div class="rx-history-item" onclick="viewRx('${rx.id}')">
+          <div class="rx-date-badge">
+            <div class="day">${d.getDate()}</div>
+            <div class="mon">${d.toLocaleString('en',{month:'short'})}</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:700; font-size:15px; color:var(--rx-blue)">${rx.date} — ${rx.visitType||'Visit'}</div>
+            <div style="font-size:13px; color:var(--text); margin-top:2px">${rx.diagnosis ? '<strong>Diagnosis:</strong> ' + rx.diagnosis : ''}</div>
+            <div class="text-muted">${rx.complaints ? 'Complaints: ' + rx.complaints.substring(0,60) + '...' : ''}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px">
+            <span class="tag tag-blue">${rx.drugs ? rx.drugs.length : 0} drug(s)</span>
+            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); viewRx('${rx.id}')">👁️ View / Print</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  openModal('modal-patient-history');
+}
+
+function editPatient(pid) {
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+  state.editingPatientId = pid;
+  setV('pname', p.name || '');
+  setV('page', p.age || '');
+  setV('pgender', p.gender || 'Male');
+  setV('pblood', p.bloodGroup || '');
+  setV('pphone', p.phone || '');
+  setV('pallergies', p.allergies || '');
+  openModal('modal-patient');
+}
+
+function deletePatient(pid) {
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+
+  const rxCount = state.prescriptions.filter(r => r.patientId === pid).length;
+  const warningMsg = `⚠️ Are you sure you want to delete the profile for "${p.name}"?\n\nWarning: All ${rxCount} prescription(s) associated with this patient will also be permanently deleted!`;
+
+  if (confirm(warningMsg)) {
+    state.patients = state.patients.filter(x => x.id !== pid);
+    state.prescriptions = state.prescriptions.filter(r => r.patientId !== pid);
+    saveState();
+    renderPatients();
+    renderDashboard();
+    renderAllRx();
+    closeModal('modal-patient-history');
+    toast('🗑️ Patient profile deleted');
+  }
 }
 
 function openPatientModal() {
@@ -840,13 +996,18 @@ function renderAllRx() {
     return;
   }
 
-  list.innerHTML = state.prescriptions.map(rx => `
+  const sorted = [...state.prescriptions].sort((a,b) => new Date(b.createdAt||b.date) - new Date(a.createdAt||a.date));
+
+  list.innerHTML = sorted.map(rx => `
     <div class="rx-history-item" onclick="viewRx('${rx.id}')">
       <div style="flex:1">
         <div style="font-weight:700; font-size:15px">${rx.patientName}</div>
         <div class="text-muted">${rx.date} · ${rx.visitType||''}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteRx('${rx.id}')">🗑️</button>
+      <div style="display:flex; gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); viewRx('${rx.id}')">👁️ View</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteRx('${rx.id}')">🗑️ Delete</button>
+      </div>
     </div>
   `).join('');
 }
