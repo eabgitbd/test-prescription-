@@ -404,8 +404,11 @@
 
       <div class="form-grid" id="sec-rx-patient" style="margin-bottom:16px">
         <div class="form-group">
-          <label>Patient *</label>
-          <select id="rx-patient-select"></select>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+            <label style="margin:0">Patient *</label>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openPatientModalFromRx()" style="padding:3px 10px; font-size:12px; min-height:28px">+ Quick Add Patient</button>
+          </div>
+          <select id="rx-patient-select" onchange="checkRxPatientSelect(this)"></select>
         </div>
         <div class="form-group">
           <label>Date</label>

@@ -449,60 +449,85 @@ textarea { resize: vertical; min-height: 80px; }
 /* ── RESPONSIVE MOBILE STYLING (< 768px) ── */
 @media (max-width: 767px) {
   #sidebar { display: none !important; }
-  #content { padding: 16px 14px 90px 14px; }
+  #content { padding: 12px 10px 84px 10px; width: 100%; box-sizing: border-box; overflow-x: hidden; }
 
-  #topnav { padding: 0 14px; height: 54px; }
-  .nav-brand { font-size: 20px; }
+  #topnav { padding: 0 10px; height: 52px; }
+  .nav-brand { font-size: 19px; }
   .version-badge { display: none; }
+  .nav-right { gap: 6px; }
+  .btn-icon { width: 34px; height: 34px; font-size: 14px; border-radius: 6px; }
+  .drive-status { font-size: 11px; max-width: 95px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Login Screen Responsive */
+  .login-card { padding: 24px 18px; max-width: 100%; border-radius: 16px; }
+  .login-logo { font-size: 30px; }
 
   /* Mobile Bottom Navigation Bar */
   .mobile-bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+    position: fixed; bottom: 0; left: 0; right: 0; height: 60px;
     background: var(--nav-bg); border-top: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-around;
     z-index: 400; box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
   }
   .mob-nav-btn {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    border: none; background: transparent; color: var(--text-3); font-size: 11px;
-    padding: 4px; flex: 1; cursor: pointer; font-weight: 500;
+    border: none; background: transparent; color: var(--text-3); font-size: 10.5px;
+    padding: 2px; flex: 1; cursor: pointer; font-weight: 500;
   }
   .mob-nav-btn.active { color: var(--accent); font-weight: 700; }
-  .mob-icon { font-size: 18px; margin-bottom: 2px; }
+  .mob-icon { font-size: 17px; margin-bottom: 2px; }
 
   /* Floating Action Button (FAB) */
   .mob-fab-btn {
-    width: 52px; height: 52px; border-radius: 50%;
+    width: 48px; height: 48px; border-radius: 50%;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-    color: white; font-size: 22px; border: none; cursor: pointer;
-    box-shadow: 0 6px 20px rgba(43, 108, 176, 0.4);
-    margin-top: -24px; display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 20px; border: none; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(43, 108, 176, 0.4);
+    margin-top: -20px; display: flex; align-items: center; justify-content: center;
   }
 
   /* Form & Cards Responsive */
-  .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .form-grid, .form-grid-3 { grid-template-columns: 1fr; gap: 12px; }
-  
+  .card { padding: 16px 12px; border-radius: 12px; }
+  .section-header { margin-bottom: 16px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .section-title { font-size: 22px; }
+  .section-sub { font-size: 12px; }
+
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { padding: 12px 10px; border-radius: 10px; }
+  .stat-num { font-size: 26px; }
+
+  .form-grid, .form-grid-3 { grid-template-columns: 1fr; gap: 10px; }
+
+  .patient-grid { grid-template-columns: 1fr; gap: 10px; }
+  .patient-card { padding: 14px 12px; }
+  .patient-actions { gap: 6px; width: 100%; margin-top: 8px; justify-content: space-between; }
+  .patient-actions .btn { flex: 1; padding: 6px 4px; font-size: 11.5px; justify-content: center; min-height: 36px; }
+
+  .rx-history-item { padding: 12px 10px; gap: 8px; flex-wrap: wrap; }
+
+  .drug-card { padding: 12px 10px; }
   .drug-grid-main, .drug-grid-secondary {
     grid-template-columns: 1fr !important;
-    gap: 10px;
+    gap: 8px;
     padding-right: 0;
   }
 
   /* Touch-friendly inputs (16px prevents mobile browser auto-zoom) */
   input, select, textarea {
     font-size: 16px !important;
-    min-height: 46px;
+    min-height: 44px;
+    padding: 10px;
   }
 
   /* Sticky Prescription Section Jumps for Mobile */
   .rx-section-jumps {
-    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px;
-    margin-bottom: 16px; position: sticky; top: 0; background: var(--modal-bg);
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px;
+    margin-bottom: 12px; position: sticky; top: 0; background: var(--modal-bg);
     z-index: 20; border-bottom: 1px solid var(--border); padding-top: 4px;
+    -webkit-overflow-scrolling: touch;
   }
   .jump-btn {
-    padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border);
     background: var(--surface2); font-size: 12px; font-weight: 600;
     color: var(--text-2); white-space: nowrap; cursor: pointer;
   }
@@ -510,12 +535,27 @@ textarea { resize: vertical; min-height: 80px; }
   /* Mobile Bottom Sheet Modals */
   .modal-overlay { align-items: flex-end; padding: 0; }
   .modal {
-    border-radius: 22px 22px 0 0 !important;
-    max-height: 92vh !important;
-    width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 94vh !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
   }
+  .modal-header { padding: 14px 14px 6px; }
+  .modal-title { font-size: 20px; }
+  .modal-body { padding: 12px 14px 20px; }
+  .modal-footer { padding: 10px 14px 16px; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+  .modal-footer .btn { flex: 1 1 calc(50% - 6px); min-width: 110px; padding: 10px; font-size: 13px; }
 
-  #toast { bottom: 76px; right: 14px; left: 14px; text-align: center; }
+  /* Mobile A4 Preview Scaler */
+  #rx-preview-wrap { padding: 12px 4px; width: 100%; overflow-x: hidden; }
+  #rx-a4-scaler { width: 100%; overflow: hidden; display: flex; justify-content: center; }
+  .zoom-bar { padding: 4px 8px; gap: 4px; }
+  .zoom-btn { font-size: 11px; padding: 4px 6px; }
+
+  #toast { bottom: 72px; right: 10px; left: 10px; text-align: center; }
 }
 
 /* ── UTILS ── */

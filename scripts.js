@@ -835,17 +835,22 @@ function downloadRxImage() {
 // ── A4 PREVIEW ZOOM SCALER FOR SMARTPHONES ──
 function zoomRxPreview(delta) {
   const el = document.getElementById('rx-a4');
+  const scaler = document.getElementById('rx-a4-scaler');
   if (!el) return;
 
   if (delta === 0) {
-    const screenW = window.innerWidth - 36;
+    const screenW = Math.min(window.innerWidth - 24, 794);
     currentRxZoom = screenW < 794 ? (screenW / 794) : 1.0;
   } else {
-    currentRxZoom = Math.min(Math.max(0.35, currentRxZoom + delta), 2.0);
+    currentRxZoom = Math.min(Math.max(0.3, currentRxZoom + delta), 2.0);
   }
 
   el.style.transform = `scale(${currentRxZoom})`;
   el.style.transformOrigin = 'top center';
+
+  if (scaler) {
+    scaler.style.height = `${Math.round(1123 * currentRxZoom + 30)}px`;
+  }
 }
 
 // ── RENDER PRESCRIPTION (STRICT A4 FORMAT) ──
@@ -1066,6 +1071,37 @@ function deletePatient(pid) {
   }
 }
 
+let isOpeningPatientFromRx = false;
+
+function populateRxPatientSelect(selectedId = '') {
+  const sel = document.getElementById('rx-patient-select');
+  if (!sel) return;
+
+  let optionsHTML = '';
+  if (state.patients.length === 0) {
+    optionsHTML = '<option value="">-- No Patients Registered --</option>';
+  } else {
+    optionsHTML = state.patients.map(p => 
+      `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.name} (${p.age || 'Age N/A'}) ${p.phone ? '· ' + p.phone : ''}</option>`
+    ).join('');
+  }
+
+  optionsHTML += `<option value="__NEW_PATIENT__">➕ Add New Patient Profile...</option>`;
+  sel.innerHTML = optionsHTML;
+}
+
+function checkRxPatientSelect(selectEl) {
+  if (selectEl.value === '__NEW_PATIENT__') {
+    openPatientModalFromRx();
+  }
+}
+
+function openPatientModalFromRx() {
+  isOpeningPatientFromRx = true;
+  closeModal('modal-rx');
+  openPatientModal();
+}
+
 function openPatientModal() {
   state.editingPatientId = null;
   ['pname','page','pgender','pblood','pphone','pallergies'].forEach(id => setV(id, ''));
@@ -1103,15 +1139,19 @@ function savePatient() {
   renderDashboard();
   scheduleCloudSync(true);
   toast('✅ Patient saved');
+
+  if (isOpeningPatientFromRx) {
+    isOpeningPatientFromRx = false;
+    openModal('modal-rx');
+    populateRxPatientSelect(patientData.id);
+    saveRxDraft();
+  }
 }
 
 function openRxModalForPatient(pid) {
   state.currentRx = null;
   openModal('modal-rx');
-  const sel = document.getElementById('rx-patient-select');
-  if (sel) {
-    sel.innerHTML = state.patients.map(p => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${p.name} (${p.age||''})</option>`).join('');
-  }
+  populateRxPatientSelect(pid);
 
   const restored = restoreRxDraft();
   if (!restored) {
@@ -1480,7 +1520,14 @@ function v(id) { const el = document.getElementById(id); return el ? el.value : 
 function setV(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 6); }
 function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+function closeModal(id) {
+  document.getElementById(id)?.classList.add('hidden');
+  if (id === 'modal-patient' && isOpeningPatientFromRx) {
+    isOpeningPatientFromRx = false;
+    openModal('modal-rx');
+    populateRxPatientSelect(v('rx-patient-select'));
+  }
+}
 
 function toast(msg, dur = 3000) {
   const t = document.getElementById('toast');
