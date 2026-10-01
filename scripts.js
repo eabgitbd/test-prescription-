@@ -4,6 +4,7 @@ var googleTokenExpiry = null;
 var tokenClient = null;
 var autoLockTimer = null;
 var lastActivityTime = Date.now();
+var currentRxZoom = 1.0;
 
 // ── STATE ──
 let state = {
@@ -11,6 +12,7 @@ let state = {
   loginMethod: 'local', // 'google' or 'local'
   securityPin: '',      // 4-digit PIN for local lock
   autoLockMinutes: 15,  // Inactivity timeout in minutes (0 = disabled)
+  theme: 'light',       // 'light' or 'dark'
   user: { name: 'Dr. Someone', email: '', initials: 'DS' },
   profile: {
     name: 'Dr. Someone',
@@ -66,7 +68,7 @@ const MEDICINE_FORMS = [
   { label: 'Lotion', value: 'Lotion', full: 'Lotion' }
 ];
 
-// ── DRUG DATABASE (Common Bangladesh Drugs) ──
+// ── DRUG DATABASE ──
 const DRUGS = [
   { name: 'Napa', generic: 'Paracetamol', dose: '500mg', form: 'Tab.', company: 'Beximco Pharma', price: '৳1.50/tab' },
   { name: 'Napa Extra', generic: 'Paracetamol + Caffeine', dose: '500mg+65mg', form: 'Tab.', company: 'Beximco Pharma', price: '৳2.00/tab' },
@@ -128,6 +130,21 @@ const DRUGS = [
   { name: 'Biphasic Insulin 30/70', generic: 'Insulin (Human)', dose: '100IU/ml', form: 'Inj.', company: 'Novo Nordisk', price: '৳450.00/vial' }
 ];
 
+// ── THEME MANAGEMENT ──
+function applyTheme(t) {
+  state.theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+  saveState();
+}
+
+function toggleTheme() {
+  const newTheme = state.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(newTheme);
+  toast(newTheme === 'dark' ? '🌙 Dark Mode Enabled' : '☀️ Light Mode Enabled');
+}
+
 // ── PERSISTENCE & SESSION LOCK ──
 function getStorageKey() {
   const email = (state.user && state.user.email) ? state.user.email : 'local_doctor';
@@ -151,6 +168,8 @@ function loadState() {
       console.error('Failed to parse local state:', e);
     }
   }
+
+  if (state.theme) applyTheme(state.theme);
 
   const cachedToken = localStorage.getItem('google_access_token');
   const cachedExpiry = localStorage.getItem('google_token_expiry');
@@ -284,7 +303,7 @@ function logout() {
   }
 }
 
-// ── GOOGLE AUTH (OAuth2 GSI) ──
+// ── GOOGLE AUTH ──
 const GOOGLE_CLIENT_ID = '744204331957-vnium3sdih08go5iuv0rlpctvgqhjara.apps.googleusercontent.com';
 const GOOGLE_SCOPES = 'openid profile email https://www.googleapis.com/auth/drive.appdata';
 
@@ -399,17 +418,26 @@ function showApp() {
 function showSection(sec) {
   document.querySelectorAll('.section-content').forEach(s => s.classList.add('hidden'));
   document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
 
   const target = document.getElementById(`section-${sec}`);
-  const btn = document.getElementById(`sb-${sec}`);
+  const sbtn = document.getElementById(`sb-${sec}`);
+  const mbtn = document.getElementById(`mnob-${sec}`);
+
   if (target) target.classList.remove('hidden');
-  if (btn) btn.classList.add('active');
+  if (sbtn) sbtn.classList.add('active');
+  if (mbtn) mbtn.classList.add('active');
 
   if (sec === 'dashboard') renderDashboard();
   if (sec === 'patients') renderPatients();
   if (sec === 'prescriptions') renderAllRx();
   if (sec === 'profile') populateProfileForm();
   if (sec === 'paddesign') initPadDesignSection();
+}
+
+function scrollToRxSec(secId) {
+  const el = document.getElementById(secId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── DRUG ROWS & PRESCRIPTION WRITING ──
@@ -684,6 +712,23 @@ function downloadRxImage() {
   });
 }
 
+// ── A4 PREVIEW ZOOM SCALER FOR MOBILE ──
+function zoomRxPreview(delta) {
+  const el = document.getElementById('rx-a4');
+  if (!el) return;
+
+  if (delta === 0) {
+    // Fit Screen Mode
+    const screenW = window.innerWidth - 32;
+    currentRxZoom = screenW < 794 ? (screenW / 794) : 1.0;
+  } else {
+    currentRxZoom = Math.min(Math.max(0.3, currentRxZoom + delta), 2.0);
+  }
+
+  el.style.transform = `scale(${currentRxZoom})`;
+  el.style.transformOrigin = 'top center';
+}
+
 // ── RENDER PRESCRIPTION (A4 / PRINT) ──
 function renderRxHTML(rx) {
   const p = state.profile;
@@ -764,6 +809,7 @@ function viewRx(id) {
   state.currentRx = rx;
   renderRxPreview(rx);
   openModal('modal-rx-preview');
+  setTimeout(() => zoomRxPreview(0.0), 100);
 }
 
 function renderRxPreview(rx) {
@@ -786,7 +832,7 @@ function printPrescription() {
   w.onload = () => { w.print(); };
 }
 
-// ── PATIENT MANAGEMENT & SERIAL HISTORY TIMELINE ──
+// ── PATIENT MANAGEMENT ──
 function renderPatients() {
   const grid = document.getElementById('patient-grid');
   if (!grid) return;
@@ -799,7 +845,6 @@ function renderPatients() {
     <div class="patient-card" onclick="openPatientHistory('${p.id}')">
       <div class="patient-card-top">
         <div class="patient-avatar ${p.gender === 'Female' ? 'female' : ''}">${p.name[0]}</div>
-        <!-- Always Visible Action Buttons -->
         <div class="patient-actions" onclick="event.stopPropagation()">
           <button class="btn btn-secondary btn-sm" onclick="openRxModalForPatient('${p.id}')" title="New Prescription">➕ New Rx</button>
           <button class="btn btn-secondary btn-sm" onclick="editPatient('${p.id}')" title="Edit Profile">✏️ Edit</button>
@@ -823,7 +868,7 @@ function openPatientHistory(pid) {
 
   document.getElementById('phist-patient-name').textContent = p.name;
   document.getElementById('phist-patient-meta').textContent = `${p.gender || ''} · Age: ${p.age || '—'} ${p.phone ? '· 📞 ' + p.phone : ''}`;
-  
+
   const addBtn = document.getElementById('phist-add-rx-btn');
   if (addBtn) {
     addBtn.onclick = () => {
@@ -832,7 +877,6 @@ function openPatientHistory(pid) {
     };
   }
 
-  // Get patient prescriptions sorted serially (newest on top -> older below)
   const patientRxList = state.prescriptions
     .filter(r => r.patientId === pid)
     .sort((a,b) => new Date(b.createdAt||b.date) - new Date(a.createdAt||a.date));

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PrescribePro Rx — Digital Prescription Management for Doctors</title>
 
   <!-- Google Fonts -->
@@ -101,6 +101,7 @@
       <div class="drive-dot" style="background:var(--warn)"></div>
       <span style="color:var(--text-3)">Drive Offline</span>
     </div>
+    <button class="btn-icon" onclick="toggleTheme()" title="Toggle Dark/Light Mode" id="theme-toggle-btn">🌙</button>
     <button class="btn-icon" onclick="syncDrive()" title="Sync to Google Drive">☁️</button>
     <button class="btn-icon" onclick="lockDesk()" title="Lock Chamber Desk Screen">🔒</button>
     <button class="btn-icon" onclick="logout()" title="Log out">🚪</button>
@@ -110,7 +111,7 @@
 
 <!-- ── MAIN APP LAYOUT ── -->
 <div id="main-layout" class="hidden">
-  <!-- Sidebar Navigation -->
+  <!-- Desktop Sidebar Navigation -->
   <div id="sidebar">
     <div class="sidebar-section">Main Menu</div>
     <button class="sidebar-btn active" onclick="showSection('dashboard')" id="sb-dashboard"><span class="ico">📊</span> Dashboard</button>
@@ -285,6 +286,32 @@
   </div>
 </div>
 
+<!-- ── MOBILE BOTTOM NAVIGATION BAR (< 768px) ── -->
+<nav class="mobile-bottom-nav">
+  <button class="mob-nav-btn active" onclick="showSection('dashboard')" id="mnob-dashboard">
+    <span class="mob-icon">📊</span>
+    <span>Dashboard</span>
+  </button>
+  <button class="mob-nav-btn" onclick="showSection('patients')" id="mnob-patients">
+    <span class="mob-icon">👥</span>
+    <span>Patients</span>
+  </button>
+
+  <!-- Central Floating Action Button (FAB) -->
+  <button class="mob-fab-btn" onclick="openRxModalForPatient('')" title="New Prescription">
+    ➕
+  </button>
+
+  <button class="mob-nav-btn" onclick="showSection('prescriptions')" id="mnob-prescriptions">
+    <span class="mob-icon">📋</span>
+    <span>Archive</span>
+  </button>
+  <button class="mob-nav-btn" onclick="showSection('paddesign')" id="mnob-paddesign">
+    <span class="mob-icon">⚙️</span>
+    <span>Settings</span>
+  </button>
+</nav>
+
 <!-- ── MODAL: PATIENT HISTORY & TIMELINE ── -->
 <div id="modal-patient-history" class="modal-overlay hidden">
   <div class="modal modal-lg">
@@ -364,9 +391,18 @@
       <div class="modal-title">Write Digital Prescription</div>
       <button class="modal-close" onclick="closeModal('modal-rx')">✕</button>
     </div>
+
+    <!-- Sticky Mobile Section Jump Buttons -->
+    <div class="rx-section-jumps">
+      <button class="jump-btn" onclick="scrollToRxSec('sec-rx-patient')">👤 Patient</button>
+      <button class="jump-btn" onclick="scrollToRxSec('sec-rx-clinical')">🩺 Clinical</button>
+      <button class="jump-btn" onclick="scrollToRxSec('sec-rx-drugs')">💊 Medicines</button>
+      <button class="jump-btn" onclick="scrollToRxSec('sec-rx-advice')">📝 Advice</button>
+    </div>
+
     <div class="modal-body">
 
-      <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-grid" id="sec-rx-patient" style="margin-bottom:16px">
         <div class="form-group">
           <label>Patient *</label>
           <select id="rx-patient-select"></select>
@@ -377,7 +413,7 @@
         </div>
       </div>
 
-      <div class="form-grid">
+      <div class="form-grid" id="sec-rx-clinical">
         <div class="form-group">
           <label>Chief Complaints</label>
           <textarea id="rx-complaints" placeholder="e.g. Fever x 3 days, Dry cough, Headache..."></textarea>
@@ -401,7 +437,7 @@
       </div>
 
       <div class="divider"></div>
-      <div style="font-size:16px; font-weight:700; color:var(--rx-blue); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center">
+      <div id="sec-rx-drugs" style="font-size:16px; font-weight:700; color:var(--rx-blue); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center">
         <span>💊 Medications (Rx)</span>
         <button class="btn btn-secondary btn-sm" onclick="addDrugRow()">+ Add Medication</button>
       </div>
@@ -410,7 +446,7 @@
       <div id="drug-rows"></div>
 
       <div class="divider"></div>
-      <div class="form-grid">
+      <div class="form-grid" id="sec-rx-advice">
         <div class="form-group">
           <label>Follow-up</label>
           <div class="form-row">
@@ -445,7 +481,17 @@
     </div>
     <div class="modal-body" style="padding:0">
       <div id="rx-preview-wrap">
-        <div id="rx-a4"></div>
+
+        <!-- Mobile Zoom & Screen Fit Bar -->
+        <div class="zoom-bar">
+          <button class="zoom-btn" onclick="zoomRxPreview(-0.1)">🔍 Zoom Out</button>
+          <button class="zoom-btn" onclick="zoomRxPreview(0.0)">📱 Fit Screen</button>
+          <button class="zoom-btn" onclick="zoomRxPreview(0.1)">🔍 Zoom In</button>
+        </div>
+
+        <div id="rx-a4-scaler">
+          <div id="rx-a4"></div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
