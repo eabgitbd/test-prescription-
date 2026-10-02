@@ -357,24 +357,39 @@ textarea { resize: vertical; min-height: 80px; }
 /* ── STRICT STANDARD A4 PRESCRIPTION PREVIEW & EXPORT ── */
 #rx-preview-wrap {
   background: #1e293b;
-  padding: 16px 12px;
+  padding: 16px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   min-height: 380px;
 }
 
-#rx-a4-scaler {
+#rx-a4-viewport {
+  width: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   overflow: hidden;
-  margin: 0 auto;
+  position: relative;
   box-sizing: border-box;
+}
+
+#rx-a4-scaler {
+  width: 794px;
+  min-width: 794px;
+  max-width: 794px;
+  height: 1123px;
+  min-height: 1123px;
+  position: relative;
+  transform-origin: top center;
+  transition: transform 0.15s ease-out;
+  flex-shrink: 0;
+  margin: 0 auto;
 }
 
 /* Fixed Standard A4 Paper Aspect Ratio (794px x 1123px = 1 : 1.414) */
@@ -382,16 +397,17 @@ textarea { resize: vertical; min-height: 80px; }
   width: 794px !important;
   min-width: 794px !important;
   max-width: 794px !important;
+  height: 1123px !important;
   min-height: 1123px !important;
   background: #ffffff !important;
   color: #1a202c !important;
   font-family: 'Crimson Pro', serif;
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   box-sizing: border-box;
   overflow: hidden;
-  flex-shrink: 0;
-  transition: transform .2s ease;
 }
 
 .rx-header { text-align: center; margin-bottom: 4px; }
@@ -570,8 +586,8 @@ textarea { resize: vertical; min-height: 80px; }
   .modal-footer .btn { flex: 1 1 calc(50% - 6px); min-width: 110px; padding: 10px; font-size: 13px; }
 
   /* Mobile A4 Preview Scaler */
-  #rx-preview-wrap { padding: 12px 4px; width: 100%; overflow-x: hidden; }
-  #rx-a4-scaler { width: 100%; overflow: hidden; display: flex; justify-content: center; }
+  #rx-preview-wrap { padding: 12px 4px; width: 100%; box-sizing: border-box; }
+  #rx-a4-viewport { width: 100%; overflow: hidden; display: flex; justify-content: center; }
   .zoom-bar { padding: 4px 8px; gap: 4px; }
   .zoom-btn { font-size: 11px; padding: 4px 6px; }
 

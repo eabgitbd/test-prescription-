@@ -969,38 +969,36 @@ function downloadRxImage() {
 
 // ── A4 PREVIEW ZOOM SCALER FOR SMARTPHONES & DESKTOPS ──
 function zoomRxPreview(delta) {
-  const el = document.getElementById('rx-a4');
   const scaler = document.getElementById('rx-a4-scaler');
+  const viewport = document.getElementById('rx-a4-viewport');
   const wrap = document.getElementById('rx-preview-wrap');
-  if (!el || !scaler) return;
+  if (!scaler || !viewport) return;
 
-  const wrapW = wrap && wrap.clientWidth > 50 ? wrap.clientWidth : (window.innerWidth - 32);
+  const wrapW = wrap && wrap.clientWidth > 50 ? wrap.clientWidth : (window.innerWidth - 24);
   const modalBody = wrap ? wrap.closest('.modal-body') : null;
   const availH = modalBody && modalBody.clientHeight > 100 
-    ? (modalBody.clientHeight - 55) 
-    : Math.max(340, window.innerHeight - 240);
+    ? (modalBody.clientHeight - 60) 
+    : Math.max(340, window.innerHeight - 220);
 
-  const containerW = Math.max(280, wrapW - 24);
+  const containerW = Math.max(260, wrapW - 24);
 
   if (delta === 0) {
     const scaleW = containerW / 794;
     const scaleH = availH / 1123;
     currentRxZoom = Math.min(scaleW, scaleH);
-    currentRxZoom = Math.min(Math.max(0.3, currentRxZoom), 1.5);
+    currentRxZoom = Math.min(Math.max(0.25, currentRxZoom), 1.5);
   } else {
-    currentRxZoom = Math.min(Math.max(0.25, currentRxZoom + delta), 2.5);
+    currentRxZoom = Math.min(Math.max(0.2, currentRxZoom + delta), 2.5);
   }
 
-  const scaledW = Math.round(794 * currentRxZoom);
+  scaler.style.transform = `scale(${currentRxZoom})`;
+  scaler.style.transformOrigin = 'top center';
+
   const scaledH = Math.round(1123 * currentRxZoom);
+  const scaledW = Math.round(794 * currentRxZoom);
 
-  scaler.style.width = `${scaledW}px`;
-  scaler.style.height = `${scaledH}px`;
-  scaler.style.margin = '0 auto';
-  scaler.style.overflow = 'hidden';
-
-  el.style.transform = `scale(${currentRxZoom})`;
-  el.style.transformOrigin = 'top left';
+  viewport.style.height = `${scaledH + 10}px`;
+  viewport.style.minWidth = currentRxZoom > (containerW / 794) ? `${scaledW}px` : '100%';
 }
 
 window.addEventListener('resize', () => {
