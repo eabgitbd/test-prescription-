@@ -344,6 +344,7 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── MODALS ── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+#modal-rx-preview { z-index: 2000 !important; }
 .modal { background: var(--modal-bg); border-radius: 18px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
 .modal-lg { max-width: 900px; }
 .modal-header { padding: 24px 28px 0; display: flex; justify-content: space-between; align-items: flex-start; }
@@ -363,6 +364,7 @@ textarea { resize: vertical; min-height: 80px; }
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 #rx-a4-scaler {
@@ -370,8 +372,9 @@ textarea { resize: vertical; min-height: 80px; }
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  overflow-x: auto;
+  overflow: hidden;
   padding: 10px 0;
+  box-sizing: border-box;
 }
 
 /* Fixed Standard A4 Paper Aspect Ratio (794px x 1123px = 1 : 1.414) */

@@ -243,12 +243,14 @@ function restoreRxDraft() {
 }
 
 // ── THEME MANAGEMENT ──
-function applyTheme(t) {
+function applyTheme(t, skipSave = false) {
   state.theme = t;
   document.documentElement.setAttribute('data-theme', t);
   const btn = document.getElementById('theme-toggle-btn');
   if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
-  saveState();
+  if (!skipSave && state.loggedIn) {
+    saveState();
+  }
 }
 
 function toggleTheme() {
@@ -264,10 +266,12 @@ function getStorageKey() {
 }
 
 function saveState() {
-  localStorage.setItem('prescribepro_session_active', state.loggedIn ? 'true' : 'false');
-  localStorage.setItem('prescribepro_session_method', state.loginMethod || 'local');
-  if (state.user && state.user.email) {
-    localStorage.setItem('prescribepro_last_email', state.user.email);
+  if (state.loggedIn) {
+    localStorage.setItem('prescribepro_session_active', 'true');
+    localStorage.setItem('prescribepro_session_method', state.loginMethod || 'local');
+    if (state.user && state.user.email) {
+      localStorage.setItem('prescribepro_last_email', state.user.email);
+    }
   }
   localStorage.setItem(getStorageKey(), JSON.stringify(state));
 }
@@ -292,7 +296,7 @@ function loadState() {
     state.loginMethod = localStorage.getItem('prescribepro_session_method') || state.loginMethod || 'local';
   }
 
-  if (state.theme) applyTheme(state.theme);
+  if (state.theme) applyTheme(state.theme, true);
 
   const cachedToken = localStorage.getItem('google_access_token');
   const cachedExpiry = localStorage.getItem('google_token_expiry');
@@ -356,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (state.loggedIn || sessionActive) {
     state.loggedIn = true;
+    saveState();
     showApp();
     if (state.loginMethod === 'google') {
       syncWithGoogleCloud();
@@ -575,7 +580,7 @@ async function fetchUserInfoAndLogin() {
 
   state.loggedIn = true;
   state.loginMethod = 'google';
-  loadState();
+  localStorage.setItem('prescribepro_session_active', 'true');
   saveState();
 
   setLoginLoading(false);
@@ -966,21 +971,28 @@ function downloadRxImage() {
 function zoomRxPreview(delta) {
   const el = document.getElementById('rx-a4');
   const scaler = document.getElementById('rx-a4-scaler');
-  if (!el) return;
+  const wrap = document.getElementById('rx-preview-wrap');
+  if (!el || !scaler) return;
+
+  const wrapW = wrap ? (wrap.clientWidth - 24) : (window.innerWidth - 32);
+  const containerW = Math.max(300, Math.min(wrapW, 794));
 
   if (delta === 0) {
-    const screenW = Math.min(window.innerWidth - 24, 794);
-    currentRxZoom = screenW < 794 ? (screenW / 794) : 1.0;
+    currentRxZoom = containerW < 794 ? (containerW / 794) : 1.0;
   } else {
     currentRxZoom = Math.min(Math.max(0.3, currentRxZoom + delta), 2.0);
   }
 
-  el.style.transform = `scale(${currentRxZoom})`;
-  el.style.transformOrigin = 'top center';
+  const scaledW = Math.round(794 * currentRxZoom);
+  const scaledH = Math.round(1123 * currentRxZoom);
 
-  if (scaler) {
-    scaler.style.height = `${Math.round(1123 * currentRxZoom + 30)}px`;
-  }
+  scaler.style.width = `${scaledW}px`;
+  scaler.style.height = `${scaledH + 20}px`;
+  scaler.style.margin = '0 auto';
+  scaler.style.overflow = 'hidden';
+
+  el.style.transform = `scale(${currentRxZoom})`;
+  el.style.transformOrigin = 'top left';
 }
 
 // ── RENDER PRESCRIPTION (STRICT A4 FORMAT) ──
@@ -1063,11 +1075,14 @@ function renderRxHTML(rx) {
 
 function viewRx(id) {
   const rx = state.prescriptions.find(r => r.id === id);
-  if (!rx) return;
+  if (!rx) {
+    toast('⚠️ Prescription details not found');
+    return;
+  }
   state.currentRx = rx;
   renderRxPreview(rx);
   openModal('modal-rx-preview');
-  setTimeout(() => zoomRxPreview(0.0), 100);
+  setTimeout(() => zoomRxPreview(0.0), 50);
 }
 
 function renderRxPreview(rx) {
