@@ -967,33 +967,48 @@ function downloadRxImage() {
   });
 }
 
-// ── A4 PREVIEW ZOOM SCALER FOR SMARTPHONES ──
+// ── A4 PREVIEW ZOOM SCALER FOR SMARTPHONES & DESKTOPS ──
 function zoomRxPreview(delta) {
   const el = document.getElementById('rx-a4');
   const scaler = document.getElementById('rx-a4-scaler');
   const wrap = document.getElementById('rx-preview-wrap');
   if (!el || !scaler) return;
 
-  const wrapW = wrap ? (wrap.clientWidth - 24) : (window.innerWidth - 32);
-  const containerW = Math.max(300, Math.min(wrapW, 794));
+  const wrapW = wrap && wrap.clientWidth > 50 ? wrap.clientWidth : (window.innerWidth - 32);
+  const modalBody = wrap ? wrap.closest('.modal-body') : null;
+  const availH = modalBody && modalBody.clientHeight > 100 
+    ? (modalBody.clientHeight - 55) 
+    : Math.max(340, window.innerHeight - 240);
+
+  const containerW = Math.max(280, wrapW - 24);
 
   if (delta === 0) {
-    currentRxZoom = containerW < 794 ? (containerW / 794) : 1.0;
+    const scaleW = containerW / 794;
+    const scaleH = availH / 1123;
+    currentRxZoom = Math.min(scaleW, scaleH);
+    currentRxZoom = Math.min(Math.max(0.3, currentRxZoom), 1.5);
   } else {
-    currentRxZoom = Math.min(Math.max(0.3, currentRxZoom + delta), 2.0);
+    currentRxZoom = Math.min(Math.max(0.25, currentRxZoom + delta), 2.5);
   }
 
   const scaledW = Math.round(794 * currentRxZoom);
   const scaledH = Math.round(1123 * currentRxZoom);
 
   scaler.style.width = `${scaledW}px`;
-  scaler.style.height = `${scaledH + 20}px`;
+  scaler.style.height = `${scaledH}px`;
   scaler.style.margin = '0 auto';
   scaler.style.overflow = 'hidden';
 
   el.style.transform = `scale(${currentRxZoom})`;
   el.style.transformOrigin = 'top left';
 }
+
+window.addEventListener('resize', () => {
+  const modalPreview = document.getElementById('modal-rx-preview');
+  if (modalPreview && !modalPreview.classList.contains('hidden')) {
+    zoomRxPreview(0.0);
+  }
+});
 
 // ── RENDER PRESCRIPTION (STRICT A4 FORMAT) ──
 function renderRxHTML(rx) {
@@ -1082,7 +1097,9 @@ function viewRx(id) {
   state.currentRx = rx;
   renderRxPreview(rx);
   openModal('modal-rx-preview');
+  zoomRxPreview(0.0);
   setTimeout(() => zoomRxPreview(0.0), 50);
+  setTimeout(() => zoomRxPreview(0.0), 200);
 }
 
 function renderRxPreview(rx) {
