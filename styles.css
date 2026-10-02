@@ -421,8 +421,18 @@ textarea { resize: vertical; min-height: 80px; }
 .rx-left { width: 175px; flex-shrink: 0; border-right: 1.5px solid #1a202c; padding: 12px 12px 12px 0; display: flex; flex-direction: column; gap: 20px; }
 .rx-section-label { font-size: 12px; font-weight: 800; font-family: 'DM Sans', sans-serif; letter-spacing: .9px; text-transform: uppercase; color: #1a365d; border-bottom: 1.5px solid #cbd5e0; padding-bottom: 2px; margin-bottom: 4px; display: inline-block; }
 .rx-section-content { font-size: 12.5px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: #2d3748; line-height: 1.55; white-space: pre-wrap; margin-top: 4px; }
-.rx-right { flex: 1; padding: 12px 0 12px 18px; display: flex; flex-direction: column; }
-.rx-rx-title { font-size: 24px; font-weight: 900; color: #1a365d; margin-bottom: 12px; font-family: 'DM Sans', sans-serif; }
+.rx-rx-title {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+.rx-symbol-svg {
+  width: 28px;
+  height: 32px;
+  display: inline-block;
+  vertical-align: middle;
+}
 
 .rx-drug-item { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px dotted #cbd5e0; }
 .rx-drug-item:last-child { border-bottom: none; }
@@ -430,21 +440,25 @@ textarea { resize: vertical; min-height: 80px; }
 .rx-drug-generic { font-size: 12px; font-weight: 600; color: #4a5568; font-style: italic; font-family: 'DM Sans', sans-serif; margin-top: 1px; }
 .rx-drug-sig { font-size: 13px; color: #2d3748; font-family: 'DM Sans', sans-serif; margin-top: 3px; font-weight: 600; }
 
-.rx-footer-line { border: none; border-top: 2px solid #1a202c; margin: 16px 0 10px 0; }
-
-.rx-footer-note {
+.rx-footer-container {
   position: absolute;
-  bottom: 20px;
+  bottom: 22px;
   left: 28px;
   right: 28px;
+  border-top: 2px solid #1a202c;
+  padding-top: 8px;
   text-align: center;
+  box-sizing: border-box;
+}
+
+.rx-footer-note {
   font-size: 12.5px;
   font-weight: 700;
   font-family: 'DM Sans', sans-serif;
   color: #1a202c;
-  border-top: 2px solid #1a202c;
-  padding-top: 8px;
   line-height: 1.4;
+  margin: 0;
+  padding: 0;
 }
 
 /* Zoom Controls Bar */

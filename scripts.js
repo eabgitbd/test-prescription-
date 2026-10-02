@@ -1063,7 +1063,13 @@ function renderRxHTML(rx) {
   const followupHTML = (rx.followupDays && ps.showFollowup) ? `<div class="rx-followup" style="margin-top:16px; font-size:13px; font-family:'DM Sans',sans-serif; font-weight:700; color:${col};"><strong>Follow-up:</strong> After ${rx.followupDays} ${rx.followupUnit || 'days'}</div>` : '';
   const adviceHTML = (rx.advice && ps.showAdvice) ? `<div class="rx-advice-section" style="margin-top:16px;"><div class="rx-section-label" style="color:${col}">ADVICE / নির্দেশনা</div><div class="rx-section-content" style="font-size:13px; font-family:'DM Sans',sans-serif; color:#2d3748; line-height:1.55; white-space:pre-wrap; margin-top:4px;">${rx.advice}</div></div>` : '';
   const footerText = (p.footer || ps.footer || 'নিয়ম মাফিক ঔষধ খাবেন। ডাক্তারের পরামর্শ ব্যতীত ঔষধ পরিবর্তন নিষেধ।').trim();
-  const footerHTML = footerText ? `<div class="rx-footer-line" style="border-top-color:${col};"></div><div class="rx-footer-note" style="border-top-color:${col};">${footerText}</div>` : '';
+  const footerHTML = footerText ? `<div class="rx-footer-container" style="border-top-color:${col};"><div class="rx-footer-note">${footerText}</div></div>` : '';
+
+  const rxSymbolSVG = `
+    <svg class="rx-symbol-svg" viewBox="14 15 34 38" width="28" height="32" fill="${col}" aria-label="Rx" role="img">
+      <path d="M14.15,39V15.2H26.39a17.73,17.73,0,0,1,5.2.59A5.57,5.57,0,0,1,34.49,18a6.59,6.59,0,0,1,1.1,3.87,6.66,6.66,0,0,1-.84,3.41,6.29,6.29,0,0,1-4.6,3.17l4.74,7.87L39,29h8L39.59,40.47l8.09,12.26H39.41l-4.66-7.64-4.7,7.64h-8.2L30,40.34c-1-1.63-5.18-9.82-6.07-10.45a3.09,3.09,0,0,0-1.81-.54h-.64V39Zm7.37-14.11h3.1a11.79,11.79,0,0,0,1.95-.32,2,2,0,0,0,1.19-.75,2.42,2.42,0,0,0-.27-3.15A4.36,4.36,0,0,0,24.75,20H21.52v4.84Z"/>
+    </svg>
+  `;
 
   return `
     <div style="padding:24px 28px;">
@@ -1075,7 +1081,7 @@ function renderRxHTML(rx) {
           ${leftSections}
         </div>
         <div class="rx-right">
-          <div class="rx-rx-title" style="color:${col}">℞</div>
+          <div class="rx-rx-title" style="color:${col}">${rxSymbolSVG}</div>
           ${drugsHTML}
           ${adviceHTML}
           ${followupHTML}
