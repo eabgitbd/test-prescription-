@@ -421,6 +421,7 @@ textarea { resize: vertical; min-height: 80px; }
 .rx-left { width: 175px; flex-shrink: 0; border-right: 1.5px solid #1a202c; padding: 12px 12px 12px 0; display: flex; flex-direction: column; gap: 20px; }
 .rx-section-label { font-size: 12px; font-weight: 800; font-family: 'DM Sans', sans-serif; letter-spacing: .9px; text-transform: uppercase; color: #1a365d; border-bottom: 1.5px solid #cbd5e0; padding-bottom: 2px; margin-bottom: 4px; display: inline-block; }
 .rx-section-content { font-size: 12.5px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: #2d3748; line-height: 1.55; white-space: pre-wrap; margin-top: 4px; }
+.rx-right { flex: 1; padding: 12px 0 12px 30px; display: flex; flex-direction: column; }
 .rx-rx-title {
   margin-bottom: 12px;
   display: flex;

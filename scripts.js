@@ -1040,10 +1040,10 @@ function renderRxHTML(rx) {
 
   const leftSections = `
     ${rx.complaints ? `<div><div class="rx-section-label" style="color:${col}">COMPLAINTS</div><div class="rx-section-content">${rx.complaints}</div></div>` : ''}
-    ${rx.diagnosis ? `<div><div class="rx-section-label" style="color:${col}">DIAGNOSIS</div><div class="rx-section-content">${rx.diagnosis}</div></div>` : ''}
     ${(rx.history && ps.showHistory) ? `<div><div class="rx-section-label" style="color:${col}">HISTORY</div><div class="rx-section-content">${rx.history}</div></div>` : ''}
     ${(rx.findings && ps.showFindings) ? `<div><div class="rx-section-label" style="color:${col}">FINDINGS</div><div class="rx-section-content">${rx.findings}</div></div>` : ''}
     ${(rx.investigation && ps.showInvestigation) ? `<div><div class="rx-section-label" style="color:${col}">INVESTIGATION</div><div class="rx-section-content">${rx.investigation}</div></div>` : ''}
+    ${rx.diagnosis ? `<div><div class="rx-section-label" style="color:${col}">DIAGNOSIS</div><div class="rx-section-content" style="font-weight:700; color:#1a202c;">${rx.diagnosis}</div></div>` : ''}
   `;
 
   // Prepend automatically the selected Medicine Type / Form (e.g. Tab., Cap., Syr., Inj., Supp.)
